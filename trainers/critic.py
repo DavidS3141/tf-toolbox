@@ -69,7 +69,7 @@ def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
 
     # perform initial evaluation
     print('\nINIT:')
-    print('\tValidation ... ', end='')
+    print('\tValidation ... ', end='', flush=True)
     valid_loss = sess.run(
         'loss:0',
         feed_dict={'A_in:0': A_valid, 'B_in:0': B_valid})
@@ -78,16 +78,16 @@ def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
     save_path = os.path.join(
         out_vars,
         munge_filename('%15d-%6.2f' % (0, 100 * 0 / max_epochs)))
-    print('\tSave model in %s ... ' % save_path, end='')
+    print('\tSave model in %s ... ' % save_path, end='', flush=True)
     var_saver.save(sess, save_path)
     print('\tDone.')
-    print('\tEvaluate ... ', end='')
+    print('\tEvaluate ... ', end='', flush=True)
     bigger_used_summary = sess.run(
         'bigger_used_summaries:0',
         feed_dict={'A_in:0': A_train, 'B_in:0': B_train}
     )
     print('\tDone.')
-    print('\tWrite TB ... ', end='')
+    print('\tWrite TB ... ', end='', flush=True)
     write_tb_summary(tb_saver, bigger_used_summary, 0, 0, valid_loss)
     print('\tDone.')
     print('\tLOSS: %.2e' % valid_loss)
@@ -112,7 +112,7 @@ def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
     nbr_readouts = 0
     global_step = 0
 
-    for epoch_counter in tqdm(range(1, 1 + max_epochs)):
+    for epoch_counter in tqdm(range(1, 1 + max_epochs), 'Train Critic'):
         while epoch < epoch_counter:
             A_batch, epoch = next(train_queue_A)
             B_batch, epoch_alt = next(train_queue_B)
@@ -140,7 +140,7 @@ def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
                 nbr_readouts += 1
 
                 print('\nSTEP %15d:' % global_step)
-                print('\tValidation ... ', end='')
+                print('\tValidation ... ', end='', flush=True)
                 valid_loss = sess.run(
                     'loss:0',
                     feed_dict={'A_in:0': A_valid, 'B_in:0': B_valid})
@@ -148,11 +148,11 @@ def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
                 save_path = os.path.join(
                     out_vars,
                     munge_filename('%15d-%6.2f' % (global_step,
-                                                   100 * 0 / max_epochs)))
-                print('\tSave model in %s ... ' % save_path, end='')
+                                                   100 * epoch / max_epochs)))
+                print('\tSave model in %s ... ' % save_path, end='', flush=True)
                 var_saver.save(sess, save_path)
                 print('\tDone.')
-                print('\tWrite TB ... ', end='')
+                print('\tWrite TB ... ', end='', flush=True)
                 write_tb_summary(tb_saver, bigger_used_summary, global_step,
                                  epoch, valid_loss)
                 print('\tDone.')
