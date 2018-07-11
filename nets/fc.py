@@ -3,20 +3,23 @@ from .tf_activations import get_activation
 import tensorflow as tf
 
 
-def fc_network(layer_sizes, name, in_mean=0., in_std=1., act_name='relu'):
-    with tf.name_scope(name + '_vars'):
+def fc_network(layer_sizes, name, in_mean=0., in_std=1., act_name='relu',
+               final_act_name='identity'):
+    with tf.name_scope(name + '_variables'):
         # create all variables for this network
         layer_vars = []
         layer_funcs = []
         for i in range(len(layer_sizes) - 2):
             layer_func, layer_var, in_mean, in_std = \
-                fc_layer(layer_sizes[i], layer_sizes[i + 1], 'layer-%d' % (i+1),
+                fc_layer(layer_sizes[i], layer_sizes[i + 1],
+                         'layer-%d' % (i + 1),
                          act_name=act_name, in_mean=in_mean, in_std=in_std)
             layer_vars += layer_var
             layer_funcs.append(layer_func)
         output, layer_var, out_mean, out_std = \
             fc_layer(layer_sizes[-2], layer_sizes[-1],
-                     'layer-%d' % (len(layer_sizes) - 1), act_name='identity',
+                     'layer-%d' % (len(layer_sizes) - 1),
+                     act_name=final_act_name,
                      in_mean=in_mean, in_std=in_std)
         assert out_mean == 0.0
         assert out_std == 1.0
@@ -73,7 +76,7 @@ def fc_layer(input_dim, output_dim, layer_name, act_name, in_mean, in_std):
             tf.summary.scalar('activations/std',
                               tf.sqrt(tf.reduce_mean(tf.square(
                                   activations - tf.reduce_mean(activations)))),
-                              collections=['v2', 'watch'])
+                              collections=['v0', 'v1', 'v2'])
             tf.summary.histogram('activations/std_featurewise',
                                  tf.sqrt(tf.reduce_mean(tf.square(
                                      activations -
