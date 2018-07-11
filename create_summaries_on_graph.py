@@ -30,5 +30,5 @@ def create_summaries_on_graph(verbosity):
     all_summaries = tf.summary.merge_all()
     assert(all_summaries is None)
     # name the tf_summaries
-    tf.identity(smaller_used_summaries, name='smaller_used_summaries')
-    tf.identity(bigger_used_summaries, name='bigger_used_summaries')
+    tf.identity(smaller_used_summaries, name='smaller_used_summaries_t')
+    tf.identity(bigger_used_summaries, name='bigger_used_summaries_t')
