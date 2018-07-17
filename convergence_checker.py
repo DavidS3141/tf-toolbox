@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -26,9 +27,8 @@ class Convergence_Checker(object):
             return False
         elif n >= self.max_iters:
             return True
-        return (len(self.values_of_interest)
-                - np.argmin(self.values_of_interest)
-                >
+        return (len(self.values_of_interest) -
+                np.argmin(self.values_of_interest) >
                 self.min_confirmations)
 
     def get_best(self):
@@ -46,3 +46,10 @@ class Convergence_Checker(object):
         if n == self.min_confirmations:
             return True
         return np.min(self.values_of_interest) >= value
+
+    def create_plot(self, plot_name):
+        plt.close()
+        plt.plot(np.arange(len(self.values)), self.values)
+        plt.axvline(x=self.min_confirmations - 0.5)
+        plt.axvline(x=len(self.values) - self.min_confirmations - 0.5)
+        plt.savefig(plot_name)
