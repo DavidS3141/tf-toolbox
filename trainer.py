@@ -20,6 +20,7 @@ class TF_Trainer(object):
     def __init__(self, list_feeding_data, train_cfg=dict(), max_epochs=32,
                  nbr_readouts=32, seed=None, succ_validations=64,
                  train_portion=0.8, batch_size=128):
+        tf.reset_default_graph()
         # #region train config
         self.train_cfg = AttrDict({
             'batch_size': batch_size,
@@ -34,6 +35,11 @@ class TF_Trainer(object):
         else:
             raise ValueError('train_cfg not valid config type')
         # #endregion train config
+        # #region set random seeds
+        if self.train_cfg.seed is not None:
+            np.random.seed(self.train_cfg.seed)
+            tf.set_random_seed(self.train_cfg.seed + 1)
+        # #endregion set random seeds
         assert isinstance(list_feeding_data, list)
         for tpl in list_feeding_data:
             assert isinstance(tpl, tuple)
@@ -49,7 +55,6 @@ class TF_Trainer(object):
 
     @lazy_property
     def graph(self):
-        tf.reset_default_graph()
         input_t = self.input_t
         normalization_t = self.normalization_t
         prediction_t = self.prediction_t
@@ -112,11 +117,6 @@ class TF_Trainer(object):
         self.tb_saver.add_graph(self.sess.graph)
 
     def setup_infrastructure_training(self):
-        # #region set random seeds
-        if self.train_cfg.seed is not None:
-            np.random.seed(self.train_cfg.seed)
-            tf.set_random_seed(self.train_cfg.seed + 1)
-        # #endregion set random seeds
         self.setup_datasets()
         self.setup_train_queues()
         self.setup_logging_paths()
