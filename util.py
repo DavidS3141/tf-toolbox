@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import functools
+import numpy as np
 import re
 import tensorflow as tf
 import time
@@ -152,3 +153,23 @@ def define_scope(function, scope=None, *args, **kwargs):
                 setattr(self, attribute, function(self))
         return getattr(self, attribute)
     return decorator
+
+
+def print_graph_statistics():
+    stats_string = ''
+    for key in [tf.GraphKeys.GLOBAL_VARIABLES,
+                tf.GraphKeys.TRAINABLE_VARIABLES,
+                tf.GraphKeys.WEIGHTS,
+                tf.GraphKeys.BIASES]:
+        vars = tf.get_collection(key)
+        param_count = 0
+        for var in vars:
+            param_count += np.prod(var.shape)
+        stats_string += str(key) + ' statistics:\n'
+        stats_string += '\t#vars:   %d\n' % len(vars)
+        stats_string += '\t#params: %d\n' % param_count
+        # sorted_var_names = sorted([var.name.encode() for var in vars], key=str.lower)
+        # stats_string += '\tnames:\n\t\t' + '\n\t\t'.join(sorted_var_names) + '\n'
+    print('Only weights are considered by weight decay/L2 regularization!')
+    print(stats_string)
+    return stats_string
