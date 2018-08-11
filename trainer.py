@@ -44,7 +44,7 @@ class TF_Trainer(object):
         self.list_feeding_data = list_feeding_data
         # build graph
         self.graph
-        create_summaries_on_graph(0)
+        create_summaries_on_graph()
 
     @lazy_property
     def graph(self):

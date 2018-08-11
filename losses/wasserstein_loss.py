@@ -25,9 +25,9 @@ def wasserstein_loss(network, critic_gradient_penalty, **kwargs):
             gradient_avg, gradient_std = tf.nn.moments(gradients_norm,
                                                        axes=[0])
             tf.summary.scalar('avg_gradient', gradient_avg,
-                              collections=['v0', 'v1', 'v2'])
+                              collections=['v0'])
             tf.summary.scalar('std_gradient', tf.sqrt(gradient_std),
-                              collections=['v0', 'v1', 'v2'])
+                              collections=['v0'])
         if kwargs.get('gradient_penalty_max', True):
             gradient_penalty = tf.reduce_mean(
                 tf.square(tf.maximum(0., gradients_norm - 1.0))) * \
@@ -37,9 +37,9 @@ def wasserstein_loss(network, critic_gradient_penalty, **kwargs):
                 tf.square(gradients_norm - 1.0)) * \
                 critic_gradient_penalty
         tf.summary.scalar('neg_EMD', neg_EMD,
-                          collections=['v0', 'v1', 'v2'])
+                          collections=['v0'])
         tf.summary.scalar('GP', gradient_penalty,
-                          collections=['v0', 'v1', 'v2'])
+                          collections=['v0'])
         tf.summary.scalar('total', neg_EMD + gradient_penalty,
-                          collections=['v0', 'v1', 'v2'])
+                          collections=['v0'])
         return neg_EMD + gradient_penalty

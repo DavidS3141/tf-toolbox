@@ -66,23 +66,23 @@ def fc_layer(input_dim, output_dim, layer_name, act_name, in_mean, in_std):
             with tf.name_scope('Wx_plus_b'):
                 preactivate = tf.matmul(input_tensor, weights) + biases
                 tf.summary.histogram('pre_activations', preactivate,
-                                     collections=['v2'])
+                                     collections=['d1'])
             if act == 'identity':
                 activations = preactivate
             else:
                 activations = act(preactivate, name='activation')
             tf.summary.histogram('activations', activations,
-                                 collections=['v2'])
+                                 collections=['d1'])
             tf.summary.scalar('activations/std',
                               tf.sqrt(tf.reduce_mean(tf.square(
                                   activations - tf.reduce_mean(activations)))),
-                              collections=['v0', 'v1', 'v2'])
+                              collections=['d0'])
             tf.summary.histogram('activations/std_featurewise',
                                  tf.sqrt(tf.reduce_mean(tf.square(
                                      activations -
                                      tf.reshape(tf.reduce_mean(activations, 0),
                                                 [1, -1])), 0)),
-                                 collections=['v2'])
+                                 collections=['d1'])
             return activations
     return layer, [weights, biases], post_mean, 1.0
 
@@ -111,10 +111,10 @@ def variable_summaries(var):
     '''
     with tf.name_scope('summaries'):
         mean = tf.reduce_mean(var)
-        tf.summary.scalar('mean', mean, collections=['v2'])
+        tf.summary.scalar('mean', mean, collections=['d0'])
         with tf.name_scope('std'):
             stddev = tf.sqrt(tf.reduce_mean(tf.square(var - mean)))
-        tf.summary.scalar('std', stddev, collections=['v2'])
-        tf.summary.scalar('max', tf.reduce_max(var), collections=['v2'])
-        tf.summary.scalar('min', tf.reduce_min(var), collections=['v2'])
-        tf.summary.histogram('histogram', var, collections=['v2'])
+        tf.summary.scalar('std', stddev, collections=['d0'])
+        tf.summary.scalar('max', tf.reduce_max(var), collections=['d0'])
+        tf.summary.scalar('min', tf.reduce_min(var), collections=['d0'])
+        tf.summary.histogram('histogram', var, collections=['d1'])
