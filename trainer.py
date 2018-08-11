@@ -133,11 +133,12 @@ class TF_Trainer(object):
 
 
 class Adversaries_Trainer(TF_Trainer):
-    def __init__(self, adversary_converge=1024, adversary_succ_validations=512,
-                 train_cfg=dict(), *args, **kwargs):
+    def __init__(self, adversary_converge=1024, adversary_succ_validations=128,
+                 just_train_adversary=False, train_cfg=dict(), *args, **kwargs):
         comb_train_cfg = AttrDict({
             'adversary_converge': adversary_converge,
             'adversary_succ_validations': adversary_succ_validations,
+            'just_train_adversary': just_train_adversary,
         })
         comb_train_cfg.update(train_cfg)
         super(Adversaries_Trainer, self).__init__(train_cfg=comb_train_cfg,
@@ -238,7 +239,8 @@ class Adversaries_Trainer(TF_Trainer):
                 if turn == 'performer':
                     turn = 'adversary'
                     adversary_conv_checker.reset()
-                elif turn == 'adversary':
+                elif turn == 'adversary' and \
+                        not self.train_cfg.just_train_adversary:
                     # do small validation to check if adversary is converged
                     valid_batch, epoch_valid = next(self.valid_queue)
                     fd = self.get_feed_dict(valid_batch)
@@ -246,7 +248,7 @@ class Adversaries_Trainer(TF_Trainer):
                         self.adversary_loss_t, feed_dict=fd)
                     if adversary_conv_checker.check(local_validation_value):
                         turn = 'performer'
-                else:
+                elif not self.train_cfg.just_train_adversary:
                     raise ValueError(
                         'turn(%s) is neither performer nor adversary' % turn)
                 # #endregion determine whos turn to train is next
@@ -254,11 +256,17 @@ class Adversaries_Trainer(TF_Trainer):
                 # adversary is well-defined! This is only the case after
                 # the adversary converged, meaning the next turn is
                 # performed by the performer.
-                if turn == 'performer':
+                if turn == 'performer' or self.train_cfg.just_train_adversary:
                     # #region do validation
-                    fd = self.get_feed_dict(self.list_valid_data)
-                    validation_value = self.sess.run(
-                        self.performer_loss_t, feed_dict=fd)
+                    valid_batch, epoch_valid = next(self.valid_queue)
+                    fd = self.get_feed_dict(valid_batch)
+                    if self.train_cfg.just_train_adversary:
+                        validation_value = self.sess.run(
+                            self.adversary_loss_t, feed_dict=fd)
+                    else:
+                        validation_value = self.sess.run(
+                            self.performer_loss_t, feed_dict=fd)
+                    validation_checker.check(validation_value)
                     # #endregion do validation
                     name = munge_filename(
                         '%06d__%08.4f' % (performer_steps, 100.0 * epoch /
@@ -266,7 +274,8 @@ class Adversaries_Trainer(TF_Trainer):
                     # #region readout
                     if ((epoch / self.train_cfg.max_epochs >
                          float(nbr_readouts) / self.train_cfg.nbr_readouts) or
-                            (epoch >= self.train_cfg.max_epochs)):
+                            (epoch >= self.train_cfg.max_epochs) or
+                            validation_checker.is_converged()):
                         nbr_readouts += 1
                         print('\nThis is the %d readout ...' % nbr_readouts)
                         print('\n\tCreate plots ...')
@@ -308,7 +317,7 @@ class Adversaries_Trainer(TF_Trainer):
                         save_path = os.path.join(self.best_dir, name)
                         self.best_saver.save(self.sess, save_path,
                                              global_step=global_step)
-                    if validation_checker.check(validation_value):
+                    if validation_checker.is_converged():
                         return
                     # #endregion check validation for convergence and save best
         # #endregion main loop
