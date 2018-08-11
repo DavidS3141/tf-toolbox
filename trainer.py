@@ -34,7 +34,13 @@ class TF_Trainer(object):
             raise ValueError('train_cfg not valid config type')
         # #endregion train config
         assert isinstance(list_feeding_data, list)
-        assert isinstance(list_feeding_data[0], np.ndarray)
+        for tpl in list_feeding_data:
+            assert isinstance(tpl, tuple)
+            assert isinstance(tpl[0], np.ndarray)
+            n = len(tpl[0])
+            for elem in tpl:
+                assert isinstance(elem, np.ndarray)
+                assert n == len(elem)
         self.list_feeding_data = list_feeding_data
         # build graph
         self.graph
@@ -53,16 +59,23 @@ class TF_Trainer(object):
     def setup_datasets(self):
         self.list_train_data = []
         self.list_valid_data = []
-        for data in self.list_feeding_data:
+        for tpl in self.list_feeding_data:
             if self.train_cfg.train_portion <= 1.0:
                 nbr_train_elements = int(round(
-                    self.train_cfg.train_portion * len(data)))
+                    self.train_cfg.train_portion * len(tpl[0])))
             else:
                 nbr_train_elements = self.train_cfg_train_portion
             assert isinstance(nbr_train_elements, int)
-            shuffled_data = np.random.permutation(data)
-            self.list_train_data.append(shuffled_data[:nbr_train_elements, ...])
-            self.list_valid_data.append(shuffled_data[nbr_train_elements:, ...])
+            perm = np.random.permutation(len(tpl[0]))
+            train_idxs = perm[:nbr_train_elements]
+            valid_idxs = perm[nbr_train_elements:]
+            local_train_list = []
+            local_valid_list = []
+            for elem in tpl:
+                local_train_list.append(elem[train_idxs, ...])
+                local_valid_list.append(elem[valid_idxs, ...])
+            self.list_train_data.append(tuple(local_train_list))
+            self.list_valid_data.append(tuple(local_valid_list))
 
     def setup_train_queues(self):
         self.train_queue = batch_generator(
