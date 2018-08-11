@@ -28,6 +28,52 @@ def munge_filename(name, mode='strict'):
     return NON_ALPHABETIC.sub('_', name)
 
 
+def askYN(question, default=-1, timeout=0):
+    import sys
+    import select
+
+    answers = '[y/n]'
+    if default == 0:
+        answers = '[N/y]'
+    elif default == 1:
+        answers = '[Y/n]'
+    elif default != -1:
+        raise Exception('Wrong default parameter (%d) to askYN!' % default)
+
+    if timeout > 0:
+        if default == -1:
+            raise Exception('When using timeout, specify a default answer!')
+        answers += ' (%ds time to answer!)' % timeout
+    print(question + ' ' + answers)
+
+    if timeout == 0:
+        ans = input()
+    else:
+        i, o, e = select.select([sys.stdin], [], [], timeout)
+        if i:
+            ans = sys.stdin.readline().strip()
+        else:
+            ans = ''
+
+    if ans == 'y' or ans == 'Y':
+        return True
+    elif ans == 'n' or ans == 'N':
+        return False
+    elif len(ans) == 0:
+        if default == 0:
+            return False
+        elif default == 1:
+            return True
+        elif default == -1:
+            raise Exception('There is no default option given to this '
+                            'y/n-question!')
+        else:
+            raise Exception('Logical error in askYN function!')
+    else:
+        raise Exception('Wrong answer to y/n-question! Answer was %s!' % ans)
+    raise Exception('Logical error in askYN function!')
+
+
 class AttrDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__

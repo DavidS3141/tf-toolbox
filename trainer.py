@@ -4,6 +4,7 @@ import functools
 import numpy as np
 import os
 import re
+import shutil
 import tensorflow as tf
 import time
 from tqdm import tqdm
@@ -12,7 +13,7 @@ from . import batch_generator
 from . import Convergence_Checker
 from . import create_summaries_on_graph
 from . import write_tb_summary
-from .util import AttrDict, lazy_property, munge_filename
+from .util import AttrDict, lazy_property, munge_filename, askYN
 
 
 class TF_Trainer(object):
@@ -88,10 +89,14 @@ class TF_Trainer(object):
         self.best_dir = os.path.join(self.output_dir, 'best')
         self.plot_dir = os.path.join(self.output_dir, 'plot')
         self.tb_dir = os.path.join(self.output_dir, 'tb')
-        assert not os.path.exists(self.variables_dir)
-        assert not os.path.exists(self.best_dir)
-        assert not os.path.exists(self.plot_dir)
-        assert not os.path.exists(self.tb_dir)
+        for d in [self.variables_dir, self.best_dir,
+                  self.plot_dir, self.tb_dir]:
+            if os.path.exists(d):
+                if askYN('Remove %s (necessary for Trainer to run)?' % d,
+                         default=0, timeout=10):
+                    shutil.rmtree(d)
+                else:
+                    raise EnvironmentError('Folder %s already exists!' % d)
 
     def setup_logging_ops(self):
         with tf.name_scope('variables_saver'):
@@ -173,14 +178,15 @@ class Adversaries_Trainer(TF_Trainer):
         # initialize convergence checker for adversary
         if self.train_cfg.adversary_succ_validations > 0:
             adversary_conv_checker = Convergence_Checker(
-                self.train_cfg.adversary_converge, 0,
+                min_iters=0, max_iters=self.train_cfg.adversary_converge,
                 min_confirmations=self.train_cfg.adversary_succ_validations)
         else:
             adversary_conv_checker = Convergence_Checker(
-                self.train_cfg.adversary_converge, self.train_cfg.adversary_converge)
+                min_iters=self.train_cfg.adversary_converge,
+                max_iters=self.train_cfg.adversary_converge)
         # initialize validation checker
-        validation_checker = Convergence_Checker(1, np.inf,
-            self.train_cfg.succ_validations)
+        validation_checker = Convergence_Checker(min_iters=1, max_iters=np.inf,
+            min_confirmations=self.train_cfg.succ_validations)
         # #endregion initialize convergence checkers
 
         # #region main loop
