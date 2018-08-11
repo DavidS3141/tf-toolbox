@@ -1,0 +1,10 @@
+[run]
+source =
+    .
+omit =
+	env/*
+	spec/*
+[report]
+show_missing = True
+[html]
+directory = htmlcov
