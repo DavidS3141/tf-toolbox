@@ -21,7 +21,6 @@ def generate_toy_data(size):
     assert np.all(weights > 0)
     labels = np.concatenate([A_l, B_l])
     return [(data, weights, labels)]
-    # return [(np.concatenate([data, weights, labels], axis=1),)]
 
 
 class ExampleTrainer(Trainer):
@@ -102,5 +101,5 @@ class ExampleTrainer(Trainer):
 
 def test_example_trainer():
     list_data = generate_toy_data(10000)
-    trainer = ExampleTrainer(list_data, seed=42, max_epochs=32*1024)
+    trainer = ExampleTrainer(list_data, seed=42, max_epochs=32)
     trainer.train('example_trainer')
