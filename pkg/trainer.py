@@ -51,7 +51,11 @@ class TF_Trainer(object):
     @lazy_property
     def graph(self):
         input_t = self.input_t
+        weights_t = self.weights_t
+        labels_t = self.labels_t
         normalization_t = self.normalization_t
+        self.network
+        logits_t = self.logits_t
         prediction_t = self.prediction_t
         loss_t = self.loss_t
         optimize_t = self.optimize_t
