@@ -47,7 +47,7 @@ def tf_warm_restart_cosine_annealing_scheduler(
         initial_warm_restart_iterations + \
         1
     nwr = tf.floor(tf.log(wri_relative_increment_to_power_nwr) /
-        np.log(warm_restart_iterations_relative_increment))
+                   np.log(warm_restart_iterations_relative_increment))
     iters_since_wr = iter_t - initial_warm_restart_iterations * \
         (tf.pow(warm_restart_iterations_relative_increment, nwr) - 1) / \
         (warm_restart_iterations_relative_increment - 1)

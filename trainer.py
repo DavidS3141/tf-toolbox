@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import functools
 import numpy as np
 import os
-import re
 import shutil
 import tensorflow as tf
-import time
 from tqdm import tqdm
 
 from . import batch_generator
@@ -186,7 +183,8 @@ class Adversaries_Trainer(TF_Trainer):
                 min_iters=self.train_cfg.adversary_converge,
                 max_iters=self.train_cfg.adversary_converge)
         # initialize validation checker
-        validation_checker = Convergence_Checker(min_iters=1, max_iters=np.inf,
+        validation_checker = Convergence_Checker(
+            min_iters=1, max_iters=np.inf,
             min_confirmations=self.train_cfg.succ_validations)
         # #endregion initialize convergence checkers
 
@@ -281,17 +279,18 @@ class Adversaries_Trainer(TF_Trainer):
                         print('\n\tCreate plots ...')
                         plot_dir = os.path.join(self.plot_dir, name) + '/'
                         os.makedirs(plot_dir)
-                        self.create_plots(plot_dir,
+                        self.create_plots(
+                            plot_dir,
                             adversary_conv_checker=adversary_conv_checker)
                         print('\tPlots saved to %s!' % plot_dir)
                         print('\n\tSave model ...')
                         save_path = os.path.join(self.variables_dir, name)
-                        self.variables_saver.save(self.sess, save_path,
-                            global_step=global_step)
+                        self.variables_saver.save(
+                            self.sess, save_path, global_step=global_step)
                         print('\tModel saved in file: %s' % save_path)
                         print('\n\tWrite tensorboard summary ...')
-                        write_tb_summary(self.tb_saver,
-                            bigger_used_summary, global_step,
+                        write_tb_summary(
+                            self.tb_saver, bigger_used_summary, global_step,
                             {
                                 'adversary/convergence-steps':
                                     len(adversary_conv_checker),
@@ -302,8 +301,8 @@ class Adversaries_Trainer(TF_Trainer):
                         print('\tFinished!')
                         print('Finished readout!')
                     else:
-                        write_tb_summary(self.tb_saver,
-                            smaller_used_summary, global_step,
+                        write_tb_summary(
+                            self.tb_saver, smaller_used_summary, global_step,
                             {
                                 'adversary/convergence-steps':
                                     len(adversary_conv_checker),

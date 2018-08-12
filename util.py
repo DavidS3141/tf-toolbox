@@ -143,6 +143,7 @@ def define_scope(function, scope=None, *args, **kwargs):
     """
     attribute = '_cache_' + function.__name__
     name = scope or function.__name__
+
     @property
     @functools.wraps(function)
     def decorator(self):
@@ -166,8 +167,7 @@ def print_graph_statistics():
         stats_string += str(key) + ' statistics:\n'
         stats_string += '\t#vars:   %d\n' % len(vars)
         stats_string += '\t#params: %d\n' % param_count
-        # sorted_var_names = sorted([var.name.encode() for var in vars], key=str.lower)
-        # stats_string += '\tnames:\n\t\t' + '\n\t\t'.join(sorted_var_names) + '\n'
-    print('Only weights are considered by weight decay/L2 regularization!')
+    stats_string += 'Only weights are considered by weight decay/L2 ' \
+                    'regularization!'
     print(stats_string)
     return stats_string
