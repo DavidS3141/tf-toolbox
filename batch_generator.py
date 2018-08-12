@@ -1,5 +1,8 @@
 import numpy as np
 
+te = TypeError("list_datasets could not be successfully casted"
+               " to valid type!")
+
 
 def batch_generator(batch_size, list_datasets):
     '''
@@ -10,7 +13,8 @@ def batch_generator(batch_size, list_datasets):
         list_datasets = [(list_datasets,)]
     elif isinstance(list_datasets, tuple):
         for elem in list_datasets:
-            assert isinstance(elem, np.ndarray)
+            if not isinstance(elem, np.ndarray):
+                raise te
         list_datasets = [list_datasets]
     elif isinstance(list_datasets, list):
         for i in range(len(list_datasets)):
@@ -19,20 +23,20 @@ def batch_generator(batch_size, list_datasets):
                 list_datasets[i] = (tpl,)
             elif isinstance(tpl, tuple):
                 for elem in tpl:
-                    assert isinstance(elem, np.ndarray)
+                    if not isinstance(elem, np.ndarray):
+                        raise te
             else:
-                raise TypeError("list_datasets could not be successfully casted"
-                                " to valid type!")
+                raise te
     else:
-        raise TypeError("list_datasets could not be successfully casted to "
-                        "valid type!")
+        raise te
     assert isinstance(list_datasets, list)
     for tpl in list_datasets:
         assert isinstance(tpl, tuple)
         assert isinstance(tpl[0], np.ndarray)
         n = len(tpl[0])
         for elem in tpl:
-            assert len(elem) == n
+            if not len(elem) == n:
+                raise ValueError("Correlated datasets need to have same size!")
             assert isinstance(elem, np.ndarray)
     nbr_datasets = len(list_datasets)
     n = len(list_datasets[0][0])

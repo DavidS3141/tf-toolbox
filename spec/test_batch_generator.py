@@ -27,7 +27,8 @@ def DS_2D_uncorr():
 @pytest.fixture
 def DS_2D_complex():
     return [(np.array([[1, -2], [3, -4], [5, -6], [7, -8], [9, -10]]),
-             np.array([[-1, 2], [-3, 4], [-5, 6], [-7, 8], [-9, 10]]),),
+             np.array([[-1, 2, 0], [-3, 4, 0], [-5, 6, 0], [-7, 8, 0],
+                       [-9, 10, 0]]),),
             (np.array([[-1, 2], [-3, 4], [-5, 6], [-7, 8], [-9, 10],
                        [-11, 12], [-13, 14]]),)]
 
@@ -90,6 +91,7 @@ def test_batch_generator_uncorr(DS_2D_uncorr):
     bg = batch_generator(bs, DS_2D_uncorr)
     all_concat_1 = np.empty((0, 2), dtype=DS_2D_uncorr[0][0].dtype)
     all_concat_2 = np.empty((0, 2), dtype=DS_2D_uncorr[1].dtype)
+    nbr_correlated = 0
     for i in range(35):
         n = next(bg)
         assert isinstance(n, tuple)
@@ -107,9 +109,10 @@ def test_batch_generator_uncorr(DS_2D_uncorr):
         assert isinstance(batch[1][0], np.ndarray)
         assert batch[0][0].shape == (3, 2)
         assert batch[1][0].shape == (3, 2)
-        assert np.any(batch[0][0] != -batch[1][0])
+        nbr_correlated += np.all(batch[0][0] == -batch[1][0])
         all_concat_1 = np.concatenate([all_concat_1, batch[0][0]])
         all_concat_2 = np.concatenate([all_concat_2, batch[1][0]])
+    assert nbr_correlated <= 2
     assert all_concat_1.shape == (105, 2)
     assert all_concat_2.shape == (105, 2)
     for i in range(3):
@@ -121,9 +124,24 @@ def test_batch_generator_uncorr(DS_2D_uncorr):
 
 def test_batch_generator_type_error_1():
     with pytest.raises(TypeError):
-        next(batch_generator(3, ["3"]))
+        next(batch_generator(3, ("3", 2)))
 
 
 def test_batch_generator_type_error_2():
     with pytest.raises(TypeError):
+        next(batch_generator(3, [("3", 2), ("3", 2)]))
+
+
+def test_batch_generator_type_error_3():
+    with pytest.raises(TypeError):
+        next(batch_generator(3, ["3"]))
+
+
+def test_batch_generator_type_error_4():
+    with pytest.raises(TypeError):
         next(batch_generator(3, 3))
+
+
+def test_batch_generator_value_error():
+    with pytest.raises(ValueError):
+        next(batch_generator(3, (np.empty((3, 5)), np.empty((5, 3)))))
