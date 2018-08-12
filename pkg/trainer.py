@@ -4,10 +4,10 @@ import shutil
 import tensorflow as tf
 from tqdm import tqdm
 
-from . import batch_generator
-from . import Convergence_Checker
-from . import create_summaries_on_graph
-from . import write_tb_summary
+from .batch_generator import batch_generator
+from .convergence_checker import Convergence_Checker
+from .create_summaries_on_graph import create_summaries_on_graph
+from .write_tb_summary import write_tb_summary
 from .util import AttrDict, lazy_property, munge_filename, askYN
 
 

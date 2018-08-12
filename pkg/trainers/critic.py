@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-from .. import batch_generator
-from .. import Convergence_Checker
-from .. import write_tb_summary as write_general_tb_summary
+from ..batch_generator import batch_generator
+from ..Convergence_Checker import Convergence_Checker
+from ..write_tb_summary import write_tb_summary as write_general_tb_summary
 
 import numpy as np
 import os

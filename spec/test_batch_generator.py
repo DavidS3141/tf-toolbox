@@ -1,4 +1,4 @@
-from batch_generator import batch_generator
+from pkg.batch_generator import batch_generator
 
 import numpy as np
 import pytest
