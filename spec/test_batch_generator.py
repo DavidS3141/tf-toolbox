@@ -119,6 +119,11 @@ def test_batch_generator_uncorr(DS_2D_uncorr):
         assert np.all(data2[np.argsort(-data2[:, 0]), :] == DS_2D_uncorr[1])
 
 
-def test_batch_generator_type_error():
+def test_batch_generator_type_error_1():
+    with pytest.raises(TypeError):
+        next(batch_generator(3, ["3"]))
+
+
+def test_batch_generator_type_error_2():
     with pytest.raises(TypeError):
         next(batch_generator(3, 3))

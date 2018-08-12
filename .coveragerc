@@ -4,7 +4,10 @@ source =
 omit =
 	env/*
 	spec/*
+branch = True
+    
 [report]
 show_missing = True
+
 [html]
 directory = htmlcov

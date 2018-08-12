@@ -20,6 +20,9 @@ def batch_generator(batch_size, list_datasets):
             elif isinstance(tpl, tuple):
                 for elem in tpl:
                     assert isinstance(elem, np.ndarray)
+            else:
+                raise TypeError("list_datasets could not be successfully casted"
+                                " to valid type!")
     else:
         raise TypeError("list_datasets could not be successfully casted to "
                         "valid type!")
