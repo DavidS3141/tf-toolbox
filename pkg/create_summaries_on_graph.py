@@ -1,8 +1,14 @@
 import tensorflow as tf
 
 
+def safe_summary_merge(list_of_summaries):
+    return tf.summary.merge(
+        [tensor for tensor in list_of_summaries if tensor is not None])
+
+
 def create_summaries_on_graph(verbosity=1, debug_verbosity=0):
     v0_summaries = tf.summary.merge_all('v0')
+    assert v0_summaries is not None
     v1_summaries = tf.summary.merge_all('v1')
     d0_summaries = tf.summary.merge_all('d0')
     d1_summaries = tf.summary.merge_all('d1')
@@ -13,36 +19,37 @@ def create_summaries_on_graph(verbosity=1, debug_verbosity=0):
         bigger_used_summaries = v0_summaries
     elif verbosity == 1:
         smaller_used_summaries = v0_summaries
-        bigger_used_summaries = tf.summary.merge([v0_summaries, v1_summaries])
+        bigger_used_summaries = safe_summary_merge([v0_summaries, v1_summaries])
     elif verbosity == 2:
-        smaller_used_summaries = tf.summary.merge([v0_summaries, v1_summaries])
-        bigger_used_summaries = tf.summary.merge([v0_summaries, v1_summaries])
+        smaller_used_summaries = safe_summary_merge([v0_summaries,
+                                                     v1_summaries])
+        bigger_used_summaries = safe_summary_merge([v0_summaries, v1_summaries])
     else:
         raise ValueError('Verbosity has to be a one of 0,1,2 instead '
                          'of %d!' % verbosity)
     if debug_verbosity == 0:
         pass
     elif debug_verbosity == 1:
-        bigger_used_summaries = tf.summary.merge([bigger_used_summaries,
-                                                  d0_summaries])
+        bigger_used_summaries = safe_summary_merge([bigger_used_summaries,
+                                                    d0_summaries])
     elif debug_verbosity == 2:
-        smaller_used_summaries = tf.summary.merge([smaller_used_summaries,
-                                                   d0_summaries])
-        bigger_used_summaries = tf.summary.merge([bigger_used_summaries,
-                                                  d0_summaries, d1_summaries])
+        smaller_used_summaries = safe_summary_merge([smaller_used_summaries,
+                                                     d0_summaries])
+        bigger_used_summaries = safe_summary_merge([bigger_used_summaries,
+                                                    d0_summaries, d1_summaries])
     elif debug_verbosity == 3:
-        smaller_used_summaries = tf.summary.merge([smaller_used_summaries,
-                                                   d0_summaries, d1_summaries])
-        bigger_used_summaries = tf.summary.merge([bigger_used_summaries,
-                                                  d0_summaries, d1_summaries])
+        smaller_used_summaries = safe_summary_merge([smaller_used_summaries,
+                                                     d0_summaries,
+                                                     d1_summaries])
+        bigger_used_summaries = safe_summary_merge([bigger_used_summaries,
+                                                    d0_summaries, d1_summaries])
     else:
         raise ValueError('Debug Verbosity has to be a one of 0,1,2,3 instead '
                          'of %d!' % debug_verbosity)
-    if watch_summaries is not None:
-        smaller_used_summaries = tf.summary.merge([smaller_used_summaries,
-                                                   watch_summaries])
-        bigger_used_summaries = tf.summary.merge([bigger_used_summaries,
-                                                  watch_summaries])
+    smaller_used_summaries = safe_summary_merge([smaller_used_summaries,
+                                                 watch_summaries])
+    bigger_used_summaries = safe_summary_merge([bigger_used_summaries,
+                                                watch_summaries])
     # check that all summaries are sorted into one of the verbosity groups
     all_summaries = tf.summary.merge_all()
     assert(all_summaries is None)
