@@ -8,12 +8,13 @@ from .batch_generator import batch_generator
 from .convergence_checker import Convergence_Checker
 from .create_summaries_on_graph import create_summaries_on_graph
 from .write_tb_summary import write_tb_summary
-from .util import AttrDict, lazy_property, munge_filename, askYN
+from .util import AttrDict, lazy_property, munge_filename, askYN, \
+                  print_graph_statistics
 
 
 class TF_Trainer(object):
     def __init__(self, list_feeding_data, train_cfg=dict(), max_epochs=32,
-                 nbr_readouts=32, seed=None, succ_validations=64,
+                 nbr_readouts=32, seed=None, succ_validations=1024*8,
                  train_portion=0.8, batch_size=128):
         tf.reset_default_graph()
         # #region train config
@@ -59,6 +60,7 @@ class TF_Trainer(object):
         prediction_t = self.prediction_t
         loss_t = self.loss_t
         optimize_t = self.optimize_t
+        print_graph_statistics()
         return AttrDict(locals())
 
     def setup_datasets(self):

@@ -29,6 +29,18 @@ class ExampleTrainer(Trainer):
         self.average_weight = np.average(list_data[0][1])
         super(ExampleTrainer, self).__init__(list_data, *args, **kwargs)
 
+    def get_feed_dict(self, batch):
+        nbr_vals = np.sum([np.sum([np.prod(e.shape) for e in tpl])
+                           for tpl in batch])
+        approx_memory_bit = nbr_vals * 32
+        approx_memory_mb = approx_memory_bit / 8 / 1e6
+        assert approx_memory_mb < 10
+        return {
+            self.input_t: batch[0][0],
+            self.weights_t: batch[0][1],
+            self.labels_t: batch[0][2],
+        }
+
     @lazy_property
     def input_t(self):
         return tf.placeholder(shape=[None, 1], dtype=tf.float32,
@@ -77,7 +89,7 @@ class ExampleTrainer(Trainer):
     def optimize_t(self):
         step_t = tf.Variable(0, dtype=tf.int32, name='step_t')
         lr_t = tf_warm_restart_cosine_annealing_scheduler(
-            step_t, lr_min=0.001, lr_max=0.001)
+            step_t, lr_min=0.000001, lr_max=0.000001)
         tf.summary.scalar('step', step_t, collections=['v0'])
         tf.summary.scalar('lr', lr_t, collections=['v0'])
         opt = tf.train.AdamOptimizer(learning_rate=lr_t)
@@ -90,4 +102,5 @@ class ExampleTrainer(Trainer):
 
 def test_example_trainer():
     list_data = generate_toy_data(10000)
-    ExampleTrainer(list_data, seed=42)
+    trainer = ExampleTrainer(list_data, seed=42, max_epochs=32*1024)
+    trainer.train('example_trainer')
