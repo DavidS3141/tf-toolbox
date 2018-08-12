@@ -21,7 +21,8 @@ def batch_generator(batch_size, list_datasets):
                 for elem in tpl:
                     assert isinstance(elem, np.ndarray)
     else:
-        raise ValueError("list_datasets could not be successfully casted to valid type!")
+        raise TypeError("list_datasets could not be successfully casted to "
+                        "valid type!")
     assert isinstance(list_datasets, list)
     for tpl in list_datasets:
         assert isinstance(tpl, tuple)
