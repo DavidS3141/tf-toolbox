@@ -1,3 +1,7 @@
 pytest-cov
 coveralls
 flake8
+tensorflow
+matplotlib
+numpy
+tqdm
