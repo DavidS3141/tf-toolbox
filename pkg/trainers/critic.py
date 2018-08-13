@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 from ..batch_generator import batch_generator
 from ..Convergence_Checker import Convergence_Checker
 from ..write_tb_summary import write_tb_summary as write_general_tb_summary
