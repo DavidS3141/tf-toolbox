@@ -21,13 +21,13 @@ def get_time_stamp(with_date=True, with_delims=False):
 def munge_filename(name, mode='strict'):
     """Remove characters that might not be safe in a filename."""
     if mode == 'strict':
-        NON_ALPHABETIC = re.compile('[^A-Za-z0-9_.]')
+        non_alphabetic = re.compile('[^A-Za-z0-9_.]')
     else:
-        NON_ALPHABETIC = re.compile('[^A-Za-z0-9_\-.=,:]')
-    return NON_ALPHABETIC.sub('_', name)
+        non_alphabetic = re.compile('[^A-Za-z0-9_\-.=,:]')
+    return non_alphabetic.sub('_', name)
 
 
-def askYN(question, default=-1, timeout=0):
+def ask_yn(question, default=-1, timeout=0):
     import sys
     import select
 
@@ -37,7 +37,7 @@ def askYN(question, default=-1, timeout=0):
     elif default == 1:
         answers = '[Y/n]'
     elif default != -1:
-        raise Exception('Wrong default parameter (%d) to askYN!' % default)
+        raise Exception('Wrong default parameter (%d) to ask_yn!' % default)
 
     if timeout > 0:
         if default == -1:
@@ -67,10 +67,10 @@ def askYN(question, default=-1, timeout=0):
             raise Exception('There is no default option given to this '
                             'y/n-question!')
         else:
-            raise Exception('Logical error in askYN function!')
+            raise Exception('Logical error in ask_yn function!')
     else:
         raise Exception('Wrong answer to y/n-question! Answer was %s!' % ans)
-    raise Exception('Logical error in askYN function!')
+    raise Exception('Logical error in ask_yn function!')
 
 
 class AttrDict(dict):
@@ -78,7 +78,7 @@ class AttrDict(dict):
     __setattr__ = dict.__setitem__
 
 
-class share_variables(object):
+class share_variables(object):  # noqa: N801
     def __init__(self, callable_):
         self._callable = callable_
         self._wrappers = {}

@@ -1,25 +1,27 @@
 from pkg.nets.fc import fc_network
 from pkg.nets.normalization import normalization
 from pkg.schedulers import tf_warm_restart_cosine_annealing_scheduler
-from pkg.trainer import TF_Trainer as Trainer
+from pkg.trainer import Trainer
 from pkg.util import lazy_property, define_scope
 
+import matplotlib.pyplot as plt
 import numpy as np
+import shutil
 import tensorflow as tf
 
 
 def generate_toy_data(size):
     np.random.seed(42)
-    A = np.random.uniform(size=(size, 1))**2
-    A_w = 0.5 + A
-    A_l = np.zeros_like(A)
-    B = 1 - np.random.uniform(size=(2*size, 1))**2
-    B_w = (1 - 2*B)**2 + 0.5
-    B_l = np.ones_like(B)
-    data = np.concatenate([A, B])
-    weights = np.concatenate([A_w, B_w])
+    a = np.random.uniform(size=(size, 1))**2
+    a_w = 0.5 + a
+    a_l = np.zeros_like(a)
+    b = 1 - np.random.uniform(size=(2*size, 1))**2
+    b_w = (1 - 2*b)**2 + 0.5
+    b_l = np.ones_like(b)
+    data = np.concatenate([a, b])
+    weights = np.concatenate([a_w, b_w])
     assert np.all(weights > 0)
-    labels = np.concatenate([A_l, B_l])
+    labels = np.concatenate([a_l, b_l])
     return [(data, weights, labels)]
 
 

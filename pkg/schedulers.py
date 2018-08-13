@@ -8,14 +8,14 @@ def warm_restart_cosine_annealing_scheduler(
         initial_warm_restart_iterations=1024,
         warm_restart_iterations_relative_increment=2.0):
     iter = 0
-    WR_iters = initial_warm_restart_iterations
+    wr_iters = initial_warm_restart_iterations
     while True:
         iter += 1
-        if iter > WR_iters:
+        if iter > wr_iters:
             iter = 0
-            WR_iters *= warm_restart_iterations_relative_increment
+            wr_iters *= warm_restart_iterations_relative_increment
         lr = 0.5 * (lr_max + lr_min) + \
-            0.5 * (lr_max - lr_min) * np.cos(np.pi * iter / WR_iters)
+            0.5 * (lr_max - lr_min) * np.cos(np.pi * iter / wr_iters)
         yield lr
 
 
@@ -51,8 +51,8 @@ def tf_warm_restart_cosine_annealing_scheduler(
     iters_since_wr = iter_t - initial_warm_restart_iterations * \
         (tf.pow(warm_restart_iterations_relative_increment, nwr) - 1) / \
         (warm_restart_iterations_relative_increment - 1)
-    WR_iters = initial_warm_restart_iterations * \
+    wr_iters = initial_warm_restart_iterations * \
         tf.pow(warm_restart_iterations_relative_increment, nwr)
     lr = 0.5 * (lr_max + lr_min) + \
-        0.5 * (lr_max - lr_min) * tf.cos(np.pi * iters_since_wr / WR_iters)
+        0.5 * (lr_max - lr_min) * tf.cos(np.pi * iters_since_wr / wr_iters)
     return lr

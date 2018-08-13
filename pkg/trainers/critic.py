@@ -1,5 +1,5 @@
 from ..batch_generator import batch_generator
-from ..Convergence_Checker import Convergence_Checker
+from ..ConvergenceChecker import ConvergenceChecker
 from ..write_tb_summary import write_tb_summary as write_general_tb_summary
 
 import numpy as np
@@ -20,13 +20,13 @@ def munge_filename(s):
     return s.replace(' ', '_')
 
 
-def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
+def run(a_train, b_train, a_valid, b_valid, output_dir, tb_dir=None,
         train_seed=None, total_nbr_readouts=128, max_epochs=32, batch_size=32,
         succ_validations=8, sess=None, var_saver=None, tb_saver=None):
-    assert isinstance(A_train, np.ndarray)
-    assert len(A_train.shape) == 2
-    nbr_feats = A_train.shape[1]
-    for data in [B_train, A_valid, B_valid]:
+    assert isinstance(a_train, np.ndarray)
+    assert len(a_train.shape) == 2
+    nbr_feats = a_train.shape[1]
+    for data in [b_train, a_valid, b_valid]:
         assert isinstance(data, np.ndarray)
         assert len(data.shape) == 2
         assert data.shape[1] == nbr_feats
@@ -63,7 +63,7 @@ def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
     tb_saver.add_graph(sess.graph)
 
     # set up convergence checker
-    convergence_checker = Convergence_Checker(
+    convergence_checker = ConvergenceChecker(
         max_iters=np.inf, min_confirmations=succ_validations)
 
     # perform initial evaluation
@@ -71,7 +71,7 @@ def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
     print('\tValidation ... ', end='', flush=True)
     valid_loss = sess.run(
         'loss:0',
-        feed_dict={'A_in:0': A_valid, 'B_in:0': B_valid})
+        feed_dict={'a_in:0': a_valid, 'b_in:0': b_valid})
     convergence_checker.check(valid_loss)
     print('\tDone.')
     save_path = os.path.join(
@@ -83,7 +83,7 @@ def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
     print('\tEvaluate ... ', end='', flush=True)
     bigger_used_summary = sess.run(
         'bigger_used_summaries:0',
-        feed_dict={'A_in:0': A_train, 'B_in:0': B_train}
+        feed_dict={'a_in:0': a_train, 'b_in:0': b_train}
     )
     print('\tDone.')
     print('\tWrite TB ... ', end='', flush=True)
@@ -92,19 +92,19 @@ def run(A_train, B_train, A_valid, B_valid, output_dir, tb_dir=None,
     print('\tLOSS: %.2e' % valid_loss)
 
     # data batch queue
-    train_queue_A = batch_generator(batch_size, A_train)
-    train_queue_B = batch_generator(batch_size, B_train)
+    train_queue_a = batch_generator(batch_size, a_train)
+    train_queue_b = batch_generator(batch_size, b_train)
 
     # train
     _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
-           train_queue_A, train_queue_B, A_valid, B_valid, out_vars,
+           train_queue_a, train_queue_b, a_valid, b_valid, out_vars,
            var_saver, tb_saver)
 
     return sess
 
 
 def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
-           train_queue_A, train_queue_B, A_valid, B_valid, out_vars,
+           train_queue_a, train_queue_b, a_valid, b_valid, out_vars,
            var_saver, tb_saver):
     # tracking values
     epoch = 0.0
@@ -113,8 +113,8 @@ def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
 
     for epoch_counter in tqdm(range(1, 1 + max_epochs), 'Train Critic'):
         while epoch < epoch_counter:
-            A_batch, epoch = next(train_queue_A)
-            B_batch, epoch_alt = next(train_queue_B)
+            a_batch, epoch = next(train_queue_a)
+            b_batch, epoch_alt = next(train_queue_b)
             assert epoch == epoch_alt
             global_step += 1
             # do the training step
@@ -129,8 +129,8 @@ def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
                     'bigger_used_summaries:0',
                 ],
                 feed_dict={
-                    'A_in:0': A_batch,
-                    'B_in:0': B_batch,
+                    'a_in:0': a_batch,
+                    'b_in:0': b_batch,
                 }
             )
             # do validation
@@ -142,7 +142,7 @@ def _train(sess, max_epochs, total_nbr_readouts, convergence_checker,
                 print('\tValidation ... ', end='', flush=True)
                 valid_loss = sess.run(
                     'loss:0',
-                    feed_dict={'A_in:0': A_valid, 'B_in:0': B_valid})
+                    feed_dict={'a_in:0': a_valid, 'b_in:0': b_valid})
                 print('\tDone.')
                 save_path = os.path.join(
                     out_vars,

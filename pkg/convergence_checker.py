@@ -2,7 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
-class Convergence_Checker(object):
+class ConvergenceChecker(object):
     def __init__(self, min_iters=3, max_iters=int(1e13), min_confirmations=1):
         self.min_iters = min(max(min_iters, 1 + 2 * min_confirmations),
                              max_iters)

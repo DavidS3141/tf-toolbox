@@ -1,18 +1,18 @@
+from .batch_generator import batch_generator
+from .convergence_checker import ConvergenceChecker
+from .create_summaries_on_graph import create_summaries_on_graph
+from .util import AttrDict, lazy_property, munge_filename, ask_yn, \
+                  print_graph_statistics
+from .write_tb_summary import write_tb_summary
+
 import numpy as np
 import os
 import shutil
 import tensorflow as tf
 from tqdm import tqdm
 
-from .batch_generator import batch_generator
-from .convergence_checker import Convergence_Checker
-from .create_summaries_on_graph import create_summaries_on_graph
-from .write_tb_summary import write_tb_summary
-from .util import AttrDict, lazy_property, munge_filename, askYN, \
-                  print_graph_statistics
 
-
-class TF_Trainer(object):
+class Trainer(object):
     def __init__(self, list_feeding_data, train_cfg=dict(), max_epochs=32,
                  nbr_readouts=32, seed=None, succ_validations=1024*8,
                  train_portion=0.8, batch_size=128):
@@ -98,8 +98,8 @@ class TF_Trainer(object):
         for d in [self.variables_dir, self.best_dir,
                   self.plot_dir, self.tb_dir]:
             if os.path.exists(d):
-                if askYN('Remove %s (necessary for Trainer to run)?' % d,
-                         default=0, timeout=10):
+                if ask_yn('Remove %s (necessary for Trainer to run)?' % d,
+                          default=0, timeout=10):
                     shutil.rmtree(d)
                 else:
                     raise EnvironmentError('Folder %s already exists!' % d)
@@ -140,7 +140,7 @@ class TF_Trainer(object):
         # #endregion loop variables
 
         # #region initialize validation checker
-        validation_checker = Convergence_Checker(
+        validation_checker = ConvergenceChecker(
             min_iters=1, max_iters=np.inf,
             min_confirmations=self.train_cfg.succ_validations)
         # #endregion initialize validation checker
@@ -224,7 +224,7 @@ class TF_Trainer(object):
         # #endregion main loop
 
 
-class Adversaries_Trainer(TF_Trainer):
+class AdversariesTrainer(Trainer):
     def __init__(self, adversary_converge=1024, adversary_succ_validations=128,
                  just_train_adversary=False, train_cfg=dict(), *args, **kwargs):
         comb_train_cfg = AttrDict({
@@ -233,8 +233,8 @@ class Adversaries_Trainer(TF_Trainer):
             'just_train_adversary': just_train_adversary,
         })
         comb_train_cfg.update(train_cfg)
-        super(Adversaries_Trainer, self).__init__(train_cfg=comb_train_cfg,
-                                                  *args, **kwargs)
+        super(AdversariesTrainer, self).__init__(train_cfg=comb_train_cfg,
+                                                 *args, **kwargs)
 
     def get_feed_dict(self, batch):
         raise NotImplementedError
@@ -267,15 +267,15 @@ class Adversaries_Trainer(TF_Trainer):
         # #region initialize convergence checkers
         # initialize convergence checker for adversary
         if self.train_cfg.adversary_succ_validations > 0:
-            adversary_conv_checker = Convergence_Checker(
+            adversary_conv_checker = ConvergenceChecker(
                 min_iters=0, max_iters=self.train_cfg.adversary_converge,
                 min_confirmations=self.train_cfg.adversary_succ_validations)
         else:
-            adversary_conv_checker = Convergence_Checker(
+            adversary_conv_checker = ConvergenceChecker(
                 min_iters=self.train_cfg.adversary_converge,
                 max_iters=self.train_cfg.adversary_converge)
         # initialize validation checker
-        validation_checker = Convergence_Checker(
+        validation_checker = ConvergenceChecker(
             min_iters=1, max_iters=np.inf,
             min_confirmations=self.train_cfg.succ_validations)
         # #endregion initialize convergence checkers
