@@ -1,9 +1,10 @@
-pytest
-pytest-cov
 coveralls
 flake8
-pep8-naming
-tensorflow
 matplotlib
 numpy
+pep8-naming
+pytest
+pytest-cov
+scipy
+tensorflow
 tqdm

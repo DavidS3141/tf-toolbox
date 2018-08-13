@@ -4,7 +4,7 @@ import tensorflow as tf
 
 
 def fc_network(layer_sizes, name, in_mean=0., in_std=1., act_name='relu',
-               final_act_name='identity'):
+               final_act_name='identity', **kwargs):
     with tf.name_scope(name + '_variables'):
         # create all variables for this network
         layer_vars = []
@@ -13,14 +13,16 @@ def fc_network(layer_sizes, name, in_mean=0., in_std=1., act_name='relu',
             layer_func, layer_var, in_mean, in_std = \
                 fc_layer(layer_sizes[i], layer_sizes[i + 1],
                          'layer-%d' % (i + 1),
-                         act_name=act_name, in_mean=in_mean, in_std=in_std)
+                         act_name=act_name, in_mean=in_mean, in_std=in_std,
+                         **kwargs)
             layer_vars += layer_var
             layer_funcs.append(layer_func)
         output, layer_var, out_mean, out_std = \
             fc_layer(layer_sizes[-2], layer_sizes[-1],
                      'layer-%d' % (len(layer_sizes) - 1),
                      act_name=final_act_name,
-                     in_mean=in_mean, in_std=in_std)
+                     in_mean=in_mean, in_std=in_std,
+                     act_params=kwargs.get('final_act_params', (None,)))
         assert out_mean == 0.0
         assert out_std == 1.0
         layer_vars += layer_var
@@ -36,7 +38,8 @@ def fc_network(layer_sizes, name, in_mean=0., in_std=1., act_name='relu',
     return network, layer_vars
 
 
-def fc_layer(input_dim, output_dim, layer_name, act_name, in_mean, in_std):
+def fc_layer(input_dim, output_dim, layer_name, act_name, in_mean, in_std,
+             **kwargs):
     '''
     Reusable code for making a simple neural net layer.
 
@@ -45,7 +48,8 @@ def fc_layer(input_dim, output_dim, layer_name, act_name, in_mean, in_std):
     and adds a number of summary ops.
     '''
     # get activation function
-    act, pre_std, post_mean = get_activation(act_name)
+    act, pre_std, post_mean = get_activation(
+        act_name, params=kwargs.get('act_params', (None,)))
     if act is None:
         raise Exception('You have to specify a valid activation function! %s '
                         'is not a valid activation function!' % act_name)
@@ -71,6 +75,15 @@ def fc_layer(input_dim, output_dim, layer_name, act_name, in_mean, in_std):
                 activations = preactivate
             else:
                 activations = act(preactivate, name='activation')
+            if act_name == 'relu':
+                dead_count = tf.size(activations) - \
+                    tf.count_nonzero(activations, dtype=tf.int32)
+                rel_dead_count = dead_count / \
+                    tf.size(activations)
+                tf.summary.scalar('activations/dead_count', dead_count,
+                                  collections=['d0'])
+                tf.summary.scalar('activations/rel_dead_count', rel_dead_count,
+                                  collections=['d0'])
             tf.summary.histogram('activations', activations,
                                  collections=['d1'])
             tf.summary.scalar('activations/std',

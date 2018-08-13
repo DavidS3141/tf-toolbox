@@ -4,9 +4,7 @@ from pkg.schedulers import tf_warm_restart_cosine_annealing_scheduler
 from pkg.trainer import Trainer
 from pkg.util import lazy_property, define_scope
 
-import matplotlib.pyplot as plt
 import numpy as np
-import shutil
 import tensorflow as tf
 
 
@@ -64,7 +62,9 @@ class ExampleTrainer(Trainer):
     @define_scope
     def network(self):
         layer_sizes = [1, 128, 128, 128, 128, 1]
-        network_func, layer_variables = fc_network(layer_sizes, 'network')
+        network_func, layer_variables = fc_network(layer_sizes, 'network',
+                                                   act_name='leaky_relu',
+                                                   act_params=(0.01,))
         return network_func
 
     @define_scope
