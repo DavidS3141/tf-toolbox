@@ -163,8 +163,14 @@ class Trainer(ABC):
         self.timer.create_plot(self.plot_dir + '/timer')
 
     def restore_best_state(self):
-        self.best_saver.restore(self.sess,
-                                tf.train.latest_checkpoint(self.best_dir))
+        latest_best_checkpoint = tf.train.latest_checkpoint(self.best_dir)
+        latest_vars_checkpoint = tf.train.latest_checkpoint(self.variables_dir)
+        if latest_best_checkpoint:
+            self.best_saver.restore(self.sess, latest_best_checkpoint)
+        elif latest_vars_checkpoint:
+            self.variables_saver.restore(self.sess, latest_vars_checkpoint)
+        else:
+            raise EnvironmentError("Why are there aren't any saved variables?")
 
     @abstractmethod
     def create_plots(self, plot_dir, **kwargs):
