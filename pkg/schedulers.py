@@ -3,10 +3,11 @@ import tensorflow as tf
 
 
 def warm_restart_cosine_annealing_scheduler(
-        lr_max=0.001,
         lr_min=0.0,
+        lr_max=0.001,
         initial_warm_restart_iterations=1024,
         warm_restart_iterations_relative_increment=2.0):
+    assert lr_min <= lr_max
     iter = 0
     wr_iters = initial_warm_restart_iterations
     while True:
@@ -21,8 +22,8 @@ def warm_restart_cosine_annealing_scheduler(
 
 def tf_warm_restart_cosine_annealing_scheduler(
         iter_t,
-        lr_max=0.001,
         lr_min=0.0,
+        lr_max=0.001,
         initial_warm_restart_iterations=1024,
         warm_restart_iterations_relative_increment=2.0):
     '''
@@ -41,6 +42,7 @@ def tf_warm_restart_cosine_annealing_scheduler(
 
         Solving for nwr we find:
     '''
+    assert lr_min <= lr_max
     iter_t = tf.to_float(iter_t)
     wri_relative_increment_to_power_nwr = iter_t * \
         (warm_restart_iterations_relative_increment - 1.) / \
