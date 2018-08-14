@@ -5,6 +5,7 @@ from .util import AttrDict, lazy_property, munge_filename, ask_yn, \
                   print_graph_statistics
 from .write_tb_summary import write_tb_summary
 
+from abc import ABC, abstractmethod
 import numpy as np
 import os
 import shutil
@@ -12,22 +13,26 @@ import tensorflow as tf
 from tqdm import tqdm
 
 
-class Trainer(object):
-    def __init__(self, list_feeding_data, train_cfg=dict(), max_epochs=32,
-                 nbr_readouts=32, seed=None, succ_validations=1024*8,
-                 train_portion=0.8, batch_size=128):
+class Trainer(ABC):
+    def __init__(self, list_feeding_data, train_cfg=dict(), max_epochs=128,
+                 nbr_readouts=256, seed=None, succ_validations=8,
+                 train_portion=0.8, batch_size=64, verbosity=1,
+                 debug_verbosity=0, **kwargs):
         tf.reset_default_graph()
         # #region train config
         self.train_cfg = AttrDict({
             'batch_size': batch_size,
+            'debug_verbosity': debug_verbosity,
             'max_epochs': max_epochs,
             'nbr_readouts': nbr_readouts,
             'seed': seed,
             'succ_validations': succ_validations,
             'train_portion': train_portion,
+            'verbosity': verbosity,
         })
         if isinstance(train_cfg, AttrDict) or isinstance(train_cfg, dict):
             self.train_cfg.update(train_cfg)
+            self.train_cfg.update(kwargs)
         else:
             raise TypeError('train_cfg not valid config type!')
         # #endregion train config
@@ -47,7 +52,13 @@ class Trainer(object):
         self.list_feeding_data = list_feeding_data
         # build graph
         self.graph
-        create_summaries_on_graph()
+        create_summaries_on_graph(
+            verbosity=self.train_cfg.verbosity,
+            debug_verbosity=self.train_cfg.debug_verbosity)
+
+    @abstractmethod
+    def get_feed_dict(self, batch):
+        pass
 
     @lazy_property
     def graph(self):
@@ -129,6 +140,7 @@ class Trainer(object):
         self.setup_infrastructure_training()
         self.train_loop()
 
+    @abstractmethod
     def create_plots(self, plot_dir, **kwargs):
         print('\t\tNothing to do here! Overwrite "create_plots" for action!')
 

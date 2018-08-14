@@ -4,6 +4,7 @@ from pkg.schedulers import tf_warm_restart_cosine_annealing_scheduler
 from pkg.trainer import Trainer
 from pkg.util import lazy_property, define_scope
 
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
@@ -100,8 +101,55 @@ class ExampleTrainer(Trainer):
         return optimizer_opt
         # return weight_decay_regularizer([optimizer_opt], theta)
 
+    def create_plots(self, plot_dir, **kwargs):
+        data = self.list_feeding_data[0][0]
+        weights = self.list_feeding_data[0][1]
+        labels = self.list_feeding_data[0][2]
+        x = np.linspace(0, 1, num=1000)[..., np.newaxis]
+        pred = self.sess.run(self.prediction_t, feed_dict={self.input_t: x})
+        a_idxs = labels == 0
+        b_idxs = labels == 1
+        a = data[a_idxs]
+        a_w = weights[a_idxs]
+        b = data[b_idxs]
+        b_w = weights[b_idxs]
+        bins = np.linspace(0, 1, num=20)
+        bin_mids = 0.5 * (bins[:-1] + bins[1:])
+        plt.close()
+        a_h = plt.hist(a, bins=bins, weights=a_w, histtype='step', label='A')
+        b_h = plt.hist(b, bins=bins, weights=b_w, histtype='step', label='B')
+        plt.twinx()
+        plt.plot(bin_mids, b_h[0] / (a_h[0] + b_h[0]), '-g', label='B/(A+B)')
+        plt.plot(x, pred, '-r', label='pred B/(A+B)')
+        plt.gcf().legend(loc='upper left', bbox_to_anchor=(0, 1),
+                         bbox_transform=plt.gca().transAxes)
+        plt.savefig(plot_dir + 'data.png')
 
-def test_example_trainer():
-    list_data = generate_toy_data(10000)
-    trainer = ExampleTrainer(list_data, seed=42, max_epochs=32)
-    trainer.train('example_trainer')
+
+def test_deterministic_example_trainer():
+    list_data = generate_toy_data(100000)
+    trainer = ExampleTrainer(list_data, seed=42, max_epochs=32,
+                             nbr_readouts=0, debug_verbosity=0, verbosity=0,
+                             succ_validations=1)
+    trainer.train('data/example_trainer')
+    last_loss = trainer.sess.run(
+        trainer.loss_t,
+        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    trainer.restore_best_state()
+    best_loss = trainer.sess.run(
+        trainer.loss_t,
+        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    trainer = ExampleTrainer(list_data, seed=42, max_epochs=32,
+                             nbr_readouts=0, debug_verbosity=0, verbosity=0,
+                             succ_validations=1)
+    trainer.train('data/example_trainer2')
+    last_loss2 = trainer.sess.run(
+        trainer.loss_t,
+        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    trainer.restore_best_state()
+    best_loss2 = trainer.sess.run(
+        trainer.loss_t,
+        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    assert last_loss == last_loss2
+    assert best_loss == best_loss2
+    assert last_loss >= best_loss

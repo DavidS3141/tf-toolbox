@@ -1,3 +1,7 @@
+# generated data
+data/
+pkg/nets/cached_activations.txt
+
 # ctags
 .tags
 
