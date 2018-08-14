@@ -4,9 +4,12 @@ from pkg.schedulers import tf_warm_restart_cosine_annealing_scheduler
 from pkg.trainer import Trainer
 from pkg.util import lazy_property, define_scope
 
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 def generate_toy_data(size):

@@ -1,7 +1,10 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import os
 from time import time
+
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt  # noqa: E402
 
 
 def merge_total_time_dict(a, b):
