@@ -22,7 +22,7 @@ precomputed_activation_results = {
 
 
 def test_activations():
-    get_activation._hashed_activations = dict()
+    get_activation._cached_activations = dict()
     for act_name in precomputed_activation_results:
         for params in precomputed_activation_results[act_name]:
             true_pre_std, true_post_mean = \
@@ -32,8 +32,8 @@ def test_activations():
             assert pytest.approx(post_mean, abs=1e-6) == true_post_mean
 
 
-def test_hashed_activations():
-    get_activation._hashed_activations = dict()
+def test_cached_activations():
+    get_activation._cached_activations = dict()
     for act_name in precomputed_activation_results:
         for params in precomputed_activation_results[act_name]:
             true_pre_std, true_post_mean = \

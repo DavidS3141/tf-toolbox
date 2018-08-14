@@ -63,9 +63,11 @@ class ExampleTrainer(Trainer):
     @define_scope
     def network(self):
         layer_sizes = [1, 128, 128, 128, 128, 1]
+        act_name = self.train_cfg.get('act_name', 'relu')
+        act_params = self.train_cfg.get('act_params', (None,))
         network_func, layer_variables = fc_network(layer_sizes, 'network',
-                                                   act_name='leaky_relu',
-                                                   act_params=(0.01,))
+                                                   act_name=act_name,
+                                                   act_params=act_params)
         return network_func
 
     @define_scope
