@@ -8,6 +8,9 @@ class ConvergenceChecker(object):
                              max_iters)
         self.max_iters = max_iters
         self.min_confirmations = min_confirmations
+        assert isinstance(self.min_iters, int)
+        assert isinstance(self.max_iters, int)
+        assert isinstance(self.min_confirmations, int)
         self.reset()
 
     def __len__(self):
@@ -30,9 +33,7 @@ class ConvergenceChecker(object):
             self._is_converged = True
             return True
         self._is_converged = self._is_converged or \
-            (len(self.values_of_interest) -
-                np.argmin(self.values_of_interest) >
-                self.min_confirmations)
+            (self.get_nbr_confirmations() >= self.min_confirmations)
         return self._is_converged
 
     def get_best(self):
@@ -53,6 +54,12 @@ class ConvergenceChecker(object):
 
     def is_converged(self):
         return self._is_converged
+
+    def get_nbr_confirmations(self):
+        if len(self.values) < self.min_confirmations + 1:
+            return 0
+        return len(self.values_of_interest) - \
+            np.argmin(self.values_of_interest) - 1
 
     def create_plot(self, plot_name):
         plt.close()
