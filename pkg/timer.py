@@ -18,9 +18,8 @@ def merge_total_time_dict(a, b):
 
 
 class Timer(object):
-    def __init__(self, parent=None):
+    def __init__(self):
         self.reset()
-        self.parent = parent
 
     def reset(self):
         self.total_times = dict()
@@ -31,15 +30,19 @@ class Timer(object):
         if self.running_timer is None:
             assert self.running_child_timer is None
             self.running_timer = (name, time())
-            self.running_child_timer = Timer(parent=self)
+            self.running_child_timer = Timer()
         else:
             self.running_child_timer.start(name)
 
     def stop(self, name):
-        assert self.running_timer is not None
+        if self.running_timer is None:
+            raise ValueError('"%s" timer was not started!' % name)
         if self.running_timer[0] == name:
             self.total_times[name] = self.total_times.get(name, (0., dict()))
-            assert self.running_child_timer.running_timer is None
+            if self.running_child_timer.running_timer is not None:
+                raise ValueError('There is a running child timer "%s" of "%s"!'
+                                 % (self.running_child_timer.running_timer[0],
+                                    self.running_timer[0]))
             child_total_time = merge_total_time_dict(
                 self.total_times[name][1], self.running_child_timer.total_times)
             self.total_times[name] = (
@@ -49,7 +52,17 @@ class Timer(object):
             self.running_timer = None
             self.running_child_timer = None
         else:
-            self.running_child_timer.stop(name)
+            try:
+                self.running_child_timer.stop(name)
+            except ValueError as err:
+                print(self.running_timer)
+                raise
+
+    def get_current_timer(self):
+        if self.running_timer is None:
+            return []
+        return [self.running_timer[0]] + \
+            self.running_child_timer.get_current_timer()
 
     def get_max_depth(self, d=None):
         if d is None:
@@ -65,7 +78,9 @@ class Timer(object):
             time_dict = self.total_times
         assert len(time_dict) > 0
         split_range = np.linspace(*color_range, num=len(time_dict) + 1)
-        delta = split_range[1] - split_range[0]
+        delta_for_cutoff = 0
+        if len(time_dict) > 1:
+            delta_for_cutoff = split_range[1] - split_range[0]
         if depth == 0:
             mids = 0.5 * (split_range[1:] + split_range[:-1])
             labels = sorted(list(time_dict))
@@ -79,8 +94,8 @@ class Timer(object):
             if len(time_dict[k][1]) > 0:
                 t, labs, c = self.get_times_labels_colorids(
                     depth - 1, time_dict=time_dict[k][1],
-                    color_range=(split_range[i] + delta/6,
-                                 split_range[i+1] - delta/6))
+                    color_range=(split_range[i] + delta_for_cutoff/6,
+                                 split_range[i+1] - delta_for_cutoff/6))
             else:
                 t = []
                 labs = []
@@ -99,10 +114,14 @@ class Timer(object):
         plt.close()
         labels = sorted(list(timer_dict))
         times = [timer_dict[lab][0] for lab in labels]
+        total_time = sum(times)
+        labels = ['%s %.1fs' % lab_time for lab_time in zip(labels, times)]
         times = [t / min(times) for t in times]  # make sure sum > 1
         plt.pie(times, labels=labels, autopct='%.1f%%', rotatelabels=True,
                 shadow=True, startangle=90, counterclock=False)
         plt.axis('equal')
+        plt.title('total time: %.1fs' % total_time)
+        plt.tight_layout()
         plt.savefig(path + '.png')
 
         size = 0.3
@@ -130,5 +149,5 @@ class Timer(object):
         for k in timer_dict:
             if len(timer_dict[k][1]) == 0:
                 continue
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
             self.create_plot(path + '/' + k, timer_dict[k][1])
