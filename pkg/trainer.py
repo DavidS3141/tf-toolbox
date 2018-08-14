@@ -1,6 +1,7 @@
 from .batch_generator import batch_generator
 from .convergence_checker import ConvergenceChecker
 from .create_summaries_on_graph import create_summaries_on_graph
+from .timer import Timer
 from .util import AttrDict, lazy_property, munge_filename, ask_yn, \
                   print_graph_statistics
 from .write_tb_summary import write_tb_summary
@@ -143,6 +144,7 @@ class Trainer(ABC):
         self.setup_logging_paths()
         self.setup_logging_ops()
         self.setup_session()
+        self.timer = Timer()
 
     def train(self, output_dir):
         self.output_dir = output_dir
@@ -154,6 +156,7 @@ class Trainer(ABC):
         self.train_loop()
         self.restore_best_state()
         self.do_readout('final')
+        self.timer.create_plot(self.plot_dir + '/timer')
 
     def restore_best_state(self):
         self.best_saver.restore(self.sess,
@@ -187,21 +190,27 @@ class Trainer(ABC):
 
         print('\nThis is the %s readout ...' % readout_title)
         print('\tCreate plots ...')
+        self.timer.start('plot')
         plot_dir = os.path.join(self.plot_dir, name) + '/'
         os.makedirs(plot_dir)
         self.create_plots(plot_dir)
+        self.timer.stop('plot')
         print('\tPlots saved to %s!' % plot_dir)
         if not is_final:
             print('\n\tSave model ...')
+            self.timer.start('variables')
             save_path = os.path.join(self.variables_dir, name)
             self.variables_saver.save(
                 self.sess, save_path, global_step=global_step)
+            self.timer.stop('variables')
             print('\tModel saved in file: %s' % save_path)
             print('\n\tWrite tensorboard summary ...')
+            self.timer.start('TB')
             value_dict = {'epoch': epoch}
             value_dict.update(kwargs)
             write_tb_summary(
                 self.tb_saver, bigger_used_summary, global_step, value_dict)
+            self.timer.stop('TB')
             print('\tFinished!')
         print('Finished readout!')
 
@@ -224,10 +233,12 @@ class Trainer(ABC):
         )
         # #endregion initialize validation checker
 
+        self.timer.start('loop')
         # #region main loop
         with tqdm(total=self.train_cfg.max_epochs, unit='epoch',
                   dynamic_ncols=True) as pbar:
             while epoch < self.train_cfg.max_epochs:
+                self.timer.start('progress bar')
                 # #region update progress bar
                 pbar.set_description(
                     'confirmations: %d/%d' %
@@ -236,6 +247,8 @@ class Trainer(ABC):
                 if int(epoch) > pbar.n:
                     pbar.update(int(epoch) - pbar.n)
                 # #endregion update progress bar
+                self.timer.stop('progress bar')
+                self.timer.start('training')
                 # #region training step
                 batch, epoch = next(self.train_queue)
                 global_step += 1
@@ -253,6 +266,8 @@ class Trainer(ABC):
                     feed_dict=fd
                 )
                 # #endregion training step
+                self.timer.stop('training')
+                self.timer.start('validation')
                 # #region do validation
                 if global_step % self.iterations_per_validation == 0:
                     # valid_batch, epoch_valid = next(self.valid_queue)
@@ -263,6 +278,8 @@ class Trainer(ABC):
                 else:
                     validation_value = None
                 # #endregion do validation
+                self.timer.stop('validation')
+                self.timer.start('readout')
                 # #region readout
                 name = munge_filename(
                     '%06d__%08.4f' % (global_step, 100.0 * epoch /
@@ -277,6 +294,7 @@ class Trainer(ABC):
                         bigger_used_summary=bigger_used_summary,
                         validation=validation_value)
                 else:
+                    self.timer.start('TB')
                     write_tb_summary(
                         self.tb_saver, smaller_used_summary, global_step,
                         {
@@ -284,7 +302,10 @@ class Trainer(ABC):
                             'validation': validation_value,
                         }
                     )
+                    self.timer.stop('TB')
                 # #endregion readout
+                self.timer.stop('readout')
+                self.timer.start('check')
                 # #region check validation for convergence and save best
                 if validation_value and \
                         validation_checker.is_best(validation_value):
@@ -292,9 +313,12 @@ class Trainer(ABC):
                     self.best_saver.save(self.sess, save_path,
                                          global_step=global_step)
                 if validation_checker.is_converged():
+                    self.timer.stop('check')
                     break
                 # #endregion check validation for convergence and save best
+                self.timer.stop('check')
         # #endregion main loop
+        self.timer.stop('loop')
 
 
 class AdversariesTrainer(Trainer):
