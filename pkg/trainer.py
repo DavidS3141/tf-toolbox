@@ -2,10 +2,11 @@ from .batch_generator import batch_generator
 from .convergence_checker import ConvergenceChecker
 from .create_summaries_on_graph import create_summaries_on_graph
 from .timer import Timer
-from .util import AttrDict, ask_yn, print_graph_statistics
+from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property
 from .write_tb_summary import write_tb_summary
 
 from abc import ABC, abstractmethod
+import math
 import numpy as np
 import os
 import shutil
@@ -23,7 +24,7 @@ class Trainer(ABC):
         self.cfg = AttrDict({
             'batch_size': batch_size,
             'debug_verbosity': debug_verbosity,
-            'max_epochs': max_epochs,
+            'max_epochs': float(max_epochs),
             'nbr_readouts': nbr_readouts,
             'seed': seed,
             'succ_validations': succ_validations,
@@ -46,6 +47,7 @@ class Trainer(ABC):
                 assert isinstance(elem, np.ndarray)
                 assert n == len(elem)
         self.list_feeding_data = list_feeding_data
+        self.setup_trainer_object()
 
     @abstractmethod
     def get_feed_dict(self, batch):
@@ -140,15 +142,29 @@ class Trainer(ABC):
         self.sess.run(tf.global_variables_initializer())
         self.tb_saver.add_graph(self.sess.graph)
 
-    def setup_infrastructure_training(self):
+    def setup_trainer_object(self):
         self.setup_graph()
         self.setup_datasets()
         self.setup_train_queues()
+
+    def setup_infrastructure_training(self):
         self.setup_logging_paths()
         self.setup_logging_ops()
         self.setup_session()
         self.timer = Timer()
+        self.best_validation_score = np.inf
     # #endregion setup
+
+    @lazy_property
+    def data_split_hash(self):
+        hash_value = 0
+        for tpl in self.list_train_data:
+            for elem in tpl:
+                hash_value += hash(elem.tostring())
+        for tpl in self.list_valid_data:
+            for elem in tpl:
+                hash_value += hash(elem.tostring())
+        return hash_value
 
     def restore_best_state(self):
         latest_best_checkpoint = tf.train.latest_checkpoint(self.best_dir)
@@ -219,7 +235,7 @@ class Trainer(ABC):
         # #region initial readout
         validation_value, bigger_used_summary = self.sess.run(
             [self.loss_t, 'bigger_used_summaries_t:0'],
-            feed_dict=self.get_feed_dict(self.list_valid))
+            feed_dict=self.get_feed_dict(self.list_valid_data))
         self.do_readout(
             'initial', global_step=0,
             bigger_used_summary=bigger_used_summary,
@@ -236,18 +252,18 @@ class Trainer(ABC):
         # #region initialize validation checker
         validation_checker = ConvergenceChecker(
             min_iters=1,
-            max_iters=(self.cfg.max_epochs + 1) *
-            (round(self.iterations_per_epoch / self.iterations_per_validation)
-             + 1),
-            min_confirmations=round(
+            max_iters=int(math.ceil(self.cfg.max_epochs + 1) *
+                          (round(self.iterations_per_epoch /
+                                 self.iterations_per_validation) + 1)),
+            min_confirmations=int(round(
                 self.cfg.succ_validations *
-                self.iterations_per_epoch / self.iterations_per_validation)
+                self.iterations_per_epoch / self.iterations_per_validation))
         )
         # #endregion initialize validation checker
 
         self.timer.start('loop')
         # #region main loop
-        with tqdm(total=self.cfg.max_epochs, unit='epoch',
+        with tqdm(total=math.ceil(self.cfg.max_epochs), unit='epoch',
                   dynamic_ncols=True) as pbar:
             while epoch < self.cfg.max_epochs:
                 self.timer.start('progress bar')
@@ -324,6 +340,8 @@ class Trainer(ABC):
                 self.timer.stop('readout')
                 self.timer.start('check')
                 # #region check validation for convergence and save best
+                self.best_validation_score = min(
+                    self.best_validation_score, validation_value or np.inf)
                 if validation_value and \
                         validation_checker.is_best(validation_value):
                     save_path = os.path.join(self.best_dir, name)
@@ -418,7 +436,7 @@ class AdversariesTrainer(Trainer):
         # initialize validation checker
         validation_checker = ConvergenceChecker(
             min_iters=1,
-            max_iters=(self.cfg.max_epochs + 1) *
+            max_iters=math.ceil(self.cfg.max_epochs + 1) *
             (round(self.iterations_per_epoch / self.iterations_per_validation)
              + 1),
             min_confirmations=round(
@@ -429,7 +447,7 @@ class AdversariesTrainer(Trainer):
 
         self.timer.start('loop')
         # #region main loop
-        with tqdm(total=self.cfg.max_epochs, unit='epoch',
+        with tqdm(total=math.ceil(self.cfg.max_epochs), unit='epoch',
                   dynamic_ncols=True) as pbar:
             while epoch < self.cfg.max_epochs:
                 self.timer.start('progress bar')
