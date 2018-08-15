@@ -31,7 +31,7 @@ class ConvergenceChecker(object):
     def check(self, value, lr=1):
         if self.is_best(value):
             self._logged_lr = lr
-        elif lr > self._logged_lr * 1.1:
+        elif lr > 2 * self._logged_lr:
             return False
         self.values.append(value)
         n = len(self.values)

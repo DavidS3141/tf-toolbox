@@ -1,6 +1,7 @@
 from pkg.nets.fc import fc_network
 from pkg.nets.normalization import normalization
-from pkg.schedulers import tf_warm_restart_cosine_annealing_scheduler
+# from pkg.regularizers import weight_decay_regularizer
+from pkg.schedulers import tf_warm_restart_exponential_scheduler
 from pkg.trainer import Trainer
 from pkg.util import lazy_property, define_scope
 
@@ -95,11 +96,11 @@ class ExampleTrainer(Trainer):
     @define_scope
     def optimize_t(self):
         step_t = tf.Variable(0, dtype=tf.int32, name='step_t')
-        lr_t = tf_warm_restart_cosine_annealing_scheduler(
-            step_t, lr_min=0.000001, lr_max=0.000001)
+        self.lr_t = tf_warm_restart_exponential_scheduler(
+            step_t, lr_min=0.00001, lr_max=0.01)
         tf.summary.scalar('step', step_t, collections=['v0'])
-        tf.summary.scalar('lr', lr_t, collections=['v0'])
-        opt = tf.train.AdamOptimizer(learning_rate=lr_t)
+        tf.summary.scalar('lr', self.lr_t, collections=['v0'])
+        opt = tf.train.AdamOptimizer(learning_rate=self.lr_t)
         theta = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'network')
         optimizer_opt = opt.minimize(self.loss_t, var_list=theta,
                                      global_step=step_t)
