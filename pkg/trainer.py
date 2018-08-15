@@ -280,8 +280,9 @@ class Trainer(ABC):
                     # valid_batch, epoch_valid = next(self.valid_queue)
                     # fd = self.get_feed_dict(valid_batch)
                     fd = self.get_feed_dict(self.list_valid_data)
-                    validation_value = self.sess.run(self.loss_t, feed_dict=fd)
-                    validation_checker.check(validation_value)
+                    validation_value, lr = self.sess.run(
+                        [self.loss_t, self.lr_t], feed_dict=fd)
+                    validation_checker.check(validation_value, lr)
                 else:
                     validation_value = None
                 # #endregion do validation

@@ -22,12 +22,17 @@ class ConvergenceChecker(object):
     def reset(self):
         self.values = []
         self._is_converged = False
+        self._logged_lr = np.inf
 
     @property
     def values_of_interest(self):
         return self.values[self.min_confirmations:]
 
-    def check(self, value):
+    def check(self, value, lr=1):
+        if self.is_best(value):
+            self._logged_lr = lr
+        elif lr > self._logged_lr * 1.1:
+            return False
         self.values.append(value)
         n = len(self.values)
         if n < self.min_iters:
