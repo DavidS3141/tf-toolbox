@@ -141,9 +141,13 @@ def get_activation(name, params=(None,)):
             (name, str(params), tf_act.__name__ + act_name_add,
              pre_std, post_mean)
         print(cache_string)
-        with open(os.path.dirname(__file__) + '/cached_activations.txt', 'a') \
-                as file:
-            file.write(cache_string)
+        cache_fname = os.path.dirname(__file__) + '/cached_activations.txt'
+        with open(cache_fname, 'r') as file:
+            current_cache = set(file.readlines())
+        current_cache.add(cache_string)
+        current_cache = sorted(list(current_cache))
+        with open(cache_fname, 'w') as file:
+            [file.write(line) for line in current_cache]
         get_activation._cached_activations[name][params] = \
             (tf_act, pre_std, post_mean)
     return get_activation._cached_activations[name][params]
