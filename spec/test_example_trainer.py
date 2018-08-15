@@ -3,9 +3,13 @@ from pkg.nets.normalization import normalization
 # from pkg.regularizers import weight_decay_regularizer
 from pkg.schedulers import tf_warm_restart_exponential_scheduler
 from pkg.trainer import Trainer
-from pkg.util import lazy_property, define_scope
+from pkg.util import lazy_property, define_scope, AttrDict, get_time_stamp
 
 import numpy as np
+import shutil
+import skopt
+from skopt.space import Real, Categorical
+from skopt.utils import use_named_args
 import tensorflow as tf
 
 import matplotlib
@@ -93,19 +97,35 @@ class ExampleTrainer(Trainer):
             name='weighted_xentropy')
         return weighted_xentropy
 
+    @lazy_property
+    def step_t(self):
+        return tf.Variable(0, dtype=tf.int32, name='step_t')
+
+    @lazy_property
+    def lr_t(self):
+        return tf_warm_restart_exponential_scheduler(
+            self.step_t, lr_min=0.00001, lr_max=0.01)
+
     @define_scope
     def optimize_t(self):
-        step_t = tf.Variable(0, dtype=tf.int32, name='step_t')
-        self.lr_t = tf_warm_restart_exponential_scheduler(
-            step_t, lr_min=0.00001, lr_max=0.01)
-        tf.summary.scalar('step', step_t, collections=['v0'])
+        tf.summary.scalar('step', self.step_t, collections=['v0'])
         tf.summary.scalar('lr', self.lr_t, collections=['v0'])
         opt = tf.train.AdamOptimizer(learning_rate=self.lr_t)
         theta = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'network')
         optimizer_opt = opt.minimize(self.loss_t, var_list=theta,
-                                     global_step=step_t)
+                                     global_step=self.step_t)
         return optimizer_opt
         # return weight_decay_regularizer([optimizer_opt], theta)
+
+    def graph(self):
+        self.input_t
+        self.weights_t
+        self.labels_t
+        self.network
+        self.logits_t
+        self.prediction_t
+        self.loss_t
+        self.optimize_t
 
     def create_plots(self, plot_dir, **kwargs):
         data = self.list_feeding_data[0][0]
@@ -130,6 +150,37 @@ class ExampleTrainer(Trainer):
         plt.gcf().legend(loc='upper left', bbox_to_anchor=(0, 1),
                          bbox_transform=plt.gca().transAxes)
         plt.savefig(plot_dir + 'data.png')
+
+
+space = [
+    Real(8, 256, 'log-uniform', name='max_epochs'),
+    Real(1, 1024, 'log-uniform', name='batch_size'),
+    Categorical(['relu', 'leaky_relu', 'softplus', 'softplus_p'],
+                name='act_name'),
+    Real(0, 20, name='act_param'),
+    Real(0.5, 16, name='succ_validations'),
+]
+
+
+def test_hyper_search_example_trainer():
+    list_data = generate_toy_data(100000)
+    data_split_hash = ExampleTrainer(list_data, seed=42).data_split_hash
+
+    @use_named_args(space)
+    def run_example_trainer(**kwargs):
+        cfg = AttrDict(kwargs)
+        cfg.batch_size = int(round(cfg.batch_size))
+        cfg.act_params = (cfg.act_param,)
+        trainer = ExampleTrainer(list_data, seed=42, nbr_readouts=0, **cfg)
+        assert data_split_hash == trainer.data_split_hash
+        shutil.rmtree('data/hyper/%s' % str(kwargs), ignore_errors=True)
+        trainer.train('data/hyper/%s' % str(kwargs))
+        return trainer.best_validation_score
+
+    res_gp = skopt.gp_minimize(run_example_trainer, space, n_calls=1,
+                               random_state=0, n_random_starts=1)
+    skopt.dump(res_gp, 'data/hyper/%s-result.gz' % get_time_stamp(),
+               store_objective=False)
 
 
 def test_deterministic_example_trainer():

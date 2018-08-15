@@ -5,6 +5,7 @@ numpy
 pep8-naming
 pytest
 pytest-cov
+scikit-optimize
 scipy
 tensorflow
 tqdm
