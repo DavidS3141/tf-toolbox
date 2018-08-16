@@ -2,7 +2,8 @@ from .batch_generator import batch_generator
 from .convergence_checker import ConvergenceChecker
 from .create_summaries_on_graph import create_summaries_on_graph
 from .timer import Timer
-from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property
+from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property, \
+    hash_string
 from .write_tb_summary import write_tb_summary
 
 from abc import ABC, abstractmethod
@@ -120,6 +121,19 @@ class Trainer(ABC):
         self.best_dir = os.path.join(self.output_dir, 'best')
         self.plot_dir = os.path.join(self.output_dir, 'plot')
         self.tb_dir = os.path.join(self.output_dir, 'tb')
+
+    def setup_logging_ops(self):
+        with tf.name_scope('variables_saver'):
+            self.variables_saver = tf.train.Saver(max_to_keep=10)
+        with tf.name_scope('best_saver'):
+            self.best_saver = tf.train.Saver(max_to_keep=10)
+
+    def setup_session(self):
+        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
+        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        self.sess.run(tf.global_variables_initializer())
+
+    def clear_logging_paths(self):
         for d in [self.variables_dir, self.best_dir,
                   self.plot_dir, self.tb_dir]:
             if os.path.exists(d):
@@ -128,19 +142,6 @@ class Trainer(ABC):
                     shutil.rmtree(d)
                 else:
                     raise EnvironmentError('Folder %s already exists!' % d)
-
-    def setup_logging_ops(self):
-        with tf.name_scope('variables_saver'):
-            self.variables_saver = tf.train.Saver(max_to_keep=10)
-        with tf.name_scope('best_saver'):
-            self.best_saver = tf.train.Saver(max_to_keep=10)
-        self.tb_saver = tf.summary.FileWriter(self.tb_dir)
-
-    def setup_session(self):
-        gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
-        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
-        self.sess.run(tf.global_variables_initializer())
-        self.tb_saver.add_graph(self.sess.graph)
 
     def setup_trainer_object(self):
         self.setup_graph()
@@ -153,28 +154,49 @@ class Trainer(ABC):
         self.setup_session()
         self.timer = Timer()
         self.best_validation_score = np.inf
+        self.clear_logging_paths()
     # #endregion setup
 
     @lazy_property
     def data_split_hash(self):
-        hash_value = 0
+        hash_value = ''
         for tpl in self.list_train_data:
             for elem in tpl:
-                hash_value += hash(elem.tostring())
+                hash_value += hash_string(str(elem.tostring()))
         for tpl in self.list_valid_data:
             for elem in tpl:
-                hash_value += hash(elem.tostring())
+                hash_value += hash_string(str(elem.tostring()))
         return hash_value
 
-    def restore_best_state(self):
-        latest_best_checkpoint = tf.train.latest_checkpoint(self.best_dir)
-        latest_vars_checkpoint = tf.train.latest_checkpoint(self.variables_dir)
+    def restore_best_state(self, output_dir=None):
+        if output_dir:
+            assert not hasattr(self, 'output_dir')
+            latest_best_checkpoint = tf.train.latest_checkpoint(
+                os.path.join(output_dir, 'best'))
+            latest_vars_checkpoint = tf.train.latest_checkpoint(
+                os.path.join(output_dir, 'variables'))
+        else:
+            latest_best_checkpoint = tf.train.latest_checkpoint(self.best_dir)
+            latest_vars_checkpoint = tf.train.latest_checkpoint(
+                self.variables_dir)
+        if not (latest_best_checkpoint or latest_vars_checkpoint):
+            raise EnvironmentError("Why aren't there any saved variables?")
+        if output_dir:
+            self.output_dir = output_dir
+            self.setup_logging_paths()
+            self.setup_logging_ops()
+            self.setup_session()
+            self.best_validation_score = None
         if latest_best_checkpoint:
             self.best_saver.restore(self.sess, latest_best_checkpoint)
         elif latest_vars_checkpoint:
             self.variables_saver.restore(self.sess, latest_vars_checkpoint)
         else:
-            raise EnvironmentError("Why aren't there any saved variables?")
+            raise Exception('Logial error in this function!')
+        if self.best_validation_score is None:
+            self.best_validation_score = self.sess.run(
+                self.loss_t,
+                feed_dict=self.get_feed_dict(self.list_valid_data))
 
     @abstractmethod
     def create_plots(self, plot_dir, **kwargs):
@@ -223,6 +245,8 @@ class Trainer(ABC):
     def train(self, output_dir):
         self.output_dir = output_dir
         self.setup_infrastructure_training()
+        self.tb_saver = tf.summary.FileWriter(self.tb_dir)
+        self.tb_saver.add_graph(self.sess.graph)
         self.train_loop()
         self.timer.start('readout')
         self.restore_best_state()
