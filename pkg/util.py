@@ -1,8 +1,11 @@
 import functools
+import hashlib
 import numpy as np
+import os
 import re
 import tensorflow as tf
 import time
+import yaml
 
 
 def get_time_stamp(with_date=True, with_delims=False):
@@ -73,9 +76,35 @@ def ask_yn(question, default=-1, timeout=0):
     raise Exception('Logical error in ask_yn function!')
 
 
+def denumpyfy(tuple_list_dict_number):
+    if isinstance(tuple_list_dict_number, tuple):
+        return tuple([denumpyfy(elem) for elem in tuple_list_dict_number])
+    if isinstance(tuple_list_dict_number, list):
+        return [denumpyfy(elem) for elem in tuple_list_dict_number]
+    if isinstance(tuple_list_dict_number, dict):
+        return {denumpyfy(k): denumpyfy(tuple_list_dict_number[k])
+                for k in tuple_list_dict_number}
+    if isinstance(tuple_list_dict_number, float):
+        return float(tuple_list_dict_number)
+    if isinstance(tuple_list_dict_number, int):
+        return int(tuple_list_dict_number)
+    return tuple_list_dict_number
+
+
+def hash_string(string):
+    return hashlib.md5(string.encode()).hexdigest()
+
+
 class AttrDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
+
+    def get_hashed_path(self, base_path):
+        c = denumpyfy(dict(self))
+        hash_value = hash_string(yaml.dump(c))
+        with open(os.path.join(base_path, hash_value + '.cfg'), 'w') as f:
+            f.write(yaml.dump(c, default_flow_style=False))
+        return os.path.join(base_path, hash_value)
 
 
 class share_variables(object):  # noqa: N801

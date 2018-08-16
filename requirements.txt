@@ -5,7 +5,7 @@ numpy
 pep8-naming
 pytest
 pytest-cov
-scikit-optimize
+https://github.com/jkleint/scikit-optimize/archive/07d06ea4adc1b0ea63fafa890e18d86482d02868.zip
 scipy
 tensorflow
 tqdm
