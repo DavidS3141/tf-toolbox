@@ -8,6 +8,7 @@ from pkg.util import lazy_property, define_scope, AttrDict, get_time_stamp
 import numpy as np
 import os
 import skopt
+from skopt.plots import plot_objective, plot_evaluations
 from skopt.space import Real
 from skopt.utils import use_named_args
 import tensorflow as tf
@@ -33,9 +34,12 @@ def generate_toy_data(size):
 
 
 class ExampleTrainer(Trainer):
-    def __init__(self, list_data, *args, **kwargs):
+    def __init__(self, list_data, lr=0.01, normalized_weight_decay=0.05, *args,
+                 **kwargs):
         self.average_weight = np.average(list_data[0][1])
-        super(ExampleTrainer, self).__init__(list_data, *args, **kwargs)
+        super(ExampleTrainer, self).__init__(
+            list_data, lr=lr, normalized_weight_decay=normalized_weight_decay,
+            *args, **kwargs)
 
     def get_feed_dict(self, batch):
         nbr_vals = np.sum([np.sum([np.prod(e.shape) for e in tpl])
@@ -119,8 +123,8 @@ class ExampleTrainer(Trainer):
         optimizer_opt = opt.minimize(self.loss_t, var_list=theta,
                                      global_step=self.step_t)
         # return optimizer_opt
-        return weight_decay_regularizer([optimizer_opt],
-            self.lr_total_its_t[1], theta,
+        return weight_decay_regularizer(
+            [optimizer_opt], self.lr_total_its_t[1], theta,
             normalized_weight_decay=self.cfg.normalized_weight_decay)
 
     def graph(self):
@@ -197,15 +201,21 @@ def test_hyper_search_example_trainer():
     res_gp = skopt.gp_minimize(run_example_trainer, space, n_calls=1,
                                random_state=0, n_random_starts=1)
     print([d.name for d in res_gp.space.dimensions])
-    skopt.dump(res_gp, 'data/hyper/%s-result.gz' % get_time_stamp(),
-               store_objective=False)
+    ts = get_time_stamp()
+    plt.close()
+    plot_objective(res_gp)
+    plt.savefig('data/hyper/%s-objective.png' % ts)
+    plt.close()
+    plot_evaluations(res_gp)
+    plt.savefig('data/hyper/%s-evaluations.png' % ts)
+    skopt.dump(res_gp, 'data/hyper/%s-result.gz' % ts, store_objective=False)
 
 
 def test_deterministic_example_trainer():
     list_data = generate_toy_data(100000)
     trainer = ExampleTrainer(list_data, seed=42, max_epochs=32,
                              nbr_readouts=0, debug_verbosity=0, verbosity=0,
-                             succ_validations=1)
+                             succ_validations=0.2)
     trainer.train('data/example_trainer')
     last_loss = trainer.sess.run(
         trainer.loss_t,
@@ -216,7 +226,7 @@ def test_deterministic_example_trainer():
         feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
     trainer = ExampleTrainer(list_data, seed=42, max_epochs=32,
                              nbr_readouts=0, debug_verbosity=0, verbosity=0,
-                             succ_validations=1)
+                             succ_validations=0.2)
     trainer.train('data/example_trainer2')
     last_loss2 = trainer.sess.run(
         trainer.loss_t,

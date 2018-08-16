@@ -4,7 +4,7 @@ from time import sleep
 
 
 def fsleep(t):
-    sleep(0.1 * t)
+    sleep(0.01 * t)
 
 
 def test_timer():
