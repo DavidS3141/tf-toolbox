@@ -1,14 +1,14 @@
 from pkg.nets.fc import fc_network
 from pkg.nets.normalization import normalization
-# from pkg.regularizers import weight_decay_regularizer
+from pkg.regularizers import weight_decay_regularizer
 from pkg.schedulers import tf_warm_restart_exponential_scheduler
 from pkg.trainer import Trainer
 from pkg.util import lazy_property, define_scope, AttrDict, get_time_stamp
 
 import numpy as np
-import shutil
+import os
 import skopt
-from skopt.space import Real, Categorical
+from skopt.space import Real
 from skopt.utils import use_named_args
 import tensorflow as tf
 
@@ -102,9 +102,13 @@ class ExampleTrainer(Trainer):
         return tf.Variable(0, dtype=tf.int32, name='step_t')
 
     @lazy_property
-    def lr_t(self):
+    def lr_total_its_t(self):
         return tf_warm_restart_exponential_scheduler(
-            self.step_t, lr_min=0.00001, lr_max=0.01)
+            self.step_t, lr_min=0.0000001, lr_max=self.cfg.lr)
+
+    @lazy_property
+    def lr_t(self):
+        return self.lr_total_its_t[0]
 
     @define_scope
     def optimize_t(self):
@@ -114,8 +118,10 @@ class ExampleTrainer(Trainer):
         theta = tf.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES, 'network')
         optimizer_opt = opt.minimize(self.loss_t, var_list=theta,
                                      global_step=self.step_t)
-        return optimizer_opt
-        # return weight_decay_regularizer([optimizer_opt], theta)
+        # return optimizer_opt
+        return weight_decay_regularizer([optimizer_opt],
+            self.lr_total_its_t[1], theta,
+            normalized_weight_decay=self.cfg.normalized_weight_decay)
 
     def graph(self):
         self.input_t
@@ -153,12 +159,15 @@ class ExampleTrainer(Trainer):
 
 
 space = [
-    Real(8, 256, 'log-uniform', name='max_epochs'),
-    Real(1, 1024, 'log-uniform', name='batch_size'),
-    Categorical(['relu', 'leaky_relu', 'softplus', 'softplus_p'],
-                name='act_name'),
-    Real(0, 20, name='act_param'),
-    Real(0.5, 16, name='succ_validations'),
+    # Real(8, 256, 'log-uniform', name='max_epochs'),
+    Real(0.0001, 0.01, 'log-uniform', name='lr'),
+    Real(0.005, 0.5, 'log-uniform', name='normalized_weight_decay'),
+    Real(8, 1024, 'log-uniform', name='batch_size'),
+    # Categorical(['relu', 'leaky_relu', 'softplus', 'softplus_p'],
+    #             name='act_name'),
+    Real(0.0001, 0.2, 'log-uniform', name='leaky_param'),
+    # Real(1, 20, 'log-uniform', name='softplus_param'),
+    Real(0.5, 16, 'log-uniform', name='succ_validations'),
 ]
 
 
@@ -170,15 +179,24 @@ def test_hyper_search_example_trainer():
     def run_example_trainer(**kwargs):
         cfg = AttrDict(kwargs)
         cfg.batch_size = int(round(cfg.batch_size))
-        cfg.act_params = (cfg.act_param,)
+        cfg.act_name = 'leaky_relu'
+        cfg.act_params = (cfg.leaky_param,)
+        del cfg['leaky_param']
+        cfg.max_epochs = 1024
+
         trainer = ExampleTrainer(list_data, seed=42, nbr_readouts=0, **cfg)
         assert data_split_hash == trainer.data_split_hash
-        shutil.rmtree('data/hyper/%s' % str(kwargs), ignore_errors=True)
-        trainer.train('data/hyper/%s' % str(kwargs))
+        os.makedirs('data/hyper', exist_ok=True)
+        path = cfg.get_hashed_path('data/hyper')
+        try:
+            trainer.restore_best_state(path)
+        except EnvironmentError as err:
+            trainer.train(path)
         return trainer.best_validation_score
 
     res_gp = skopt.gp_minimize(run_example_trainer, space, n_calls=1,
                                random_state=0, n_random_starts=1)
+    print([d.name for d in res_gp.space.dimensions])
     skopt.dump(res_gp, 'data/hyper/%s-result.gz' % get_time_stamp(),
                store_objective=False)
 
