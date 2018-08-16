@@ -118,4 +118,4 @@ def tf_warm_restart_exponential_scheduler(
         tf.pow(warm_restart_iterations_relative_increment, nwr)
     decay_param = (lr_min / lr_max)**(1. / wr_iters)
     lr = lr_max * decay_param**iters_since_wr
-    return lr
+    return lr, wr_iters
