@@ -114,19 +114,13 @@ def summary_string2dict(summ_str):
         data_start = idx + head_len + name_len + 1
         print('before data:' + repr(summ_str[data_start - 1]))
         print('data:')
-        print(repr(summ_str[data_start:data_start + content_size - name_len + add_data]))
+        print(repr(summ_str[
+            data_start:data_start + content_size - name_len + add_data]))
         if len(summ_str) > data_start + content_size - name_len + add_data:
-            print('after data:' + repr(summ_str[data_start + content_size - name_len + add_data]))
+            print('after data:' + repr(summ_str[
+                data_start + content_size - name_len + add_data]))
         if 42 == struct.unpack('B', summ_str[idx + head_len + name_len])[0]:
-            # split_a = data_start + content_size - name_len
-            # split_b = data_start + add_data
-            # print(repr(summ_str[data_start: split_a]))
-            # print(repr(summ_str[data_start: split_b]))
-            # print(repr(summ_str[split_a: data_start + content_size - name_len + add_data]))
-            # print(repr(summ_str[split_b: data_start + content_size - name_len + add_data]))
-            v1 = [struct.unpack('B', summ_str[data_start + i])[0] for i in range(content_size - name_len)]
-            v2 = [struct.unpack('<f', summ_str[data_start + content_size - name_len + 4 * i:data_start + content_size - name_len + 4 + 4 * i])[0] for i in range(add_data // 4)]
-            value = v1
+            value = []
         else:
             value = struct.unpack('<f', summ_str[data_start:data_start + 4])[0]
         if not isinstance(value, list):

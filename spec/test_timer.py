@@ -1,4 +1,4 @@
-from tf_toolbox.timer import Timer
+from ..timer import Timer
 
 from time import sleep
 

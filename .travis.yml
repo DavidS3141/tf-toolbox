@@ -7,6 +7,6 @@ install:
 # command to run tests
 script:
   - flake8
-  - pytest --pyargs ../tf_toolbox
+  - pytest
 after_success:
   - coveralls

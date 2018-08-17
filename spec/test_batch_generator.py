@@ -1,4 +1,4 @@
-from tf_toolbox.batch_generator import batch_generator
+from ..batch_generator import batch_generator
 
 import numpy as np
 import pytest

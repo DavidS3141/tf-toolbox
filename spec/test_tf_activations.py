@@ -1,4 +1,4 @@
-from tf_toolbox.nets.tf_activations import get_activation
+from ..nets.tf_activations import get_activation
 
 import pytest
 

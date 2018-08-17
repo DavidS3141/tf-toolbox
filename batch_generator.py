@@ -18,6 +18,7 @@ def batch_generator(batch_size, list_datasets, shuffle=True,
                 raise te
         list_datasets = [list_datasets]
     elif isinstance(list_datasets, list):
+        list_datasets = list(list_datasets)
         for i in range(len(list_datasets)):
             tpl = list_datasets[i]
             if isinstance(tpl, np.ndarray):
@@ -108,8 +109,8 @@ def _single_epoch_batch_generator(
         result = []
         for i in range(nbr_datasets):
             cur_size = len(list_datasets[i][0])
-            l = (k * cur_size) // nbr_iterations
-            r = ((k + 1) * cur_size) // nbr_iterations
+            left = (k * cur_size) // nbr_iterations
+            right = ((k + 1) * cur_size) // nbr_iterations
             result.append(tuple(
-                [arr[l:r, ...] for arr in list_datasets[i]]))
+                [arr[left:right, ...] for arr in list_datasets[i]]))
         yield result, float(k) / nbr_iterations
