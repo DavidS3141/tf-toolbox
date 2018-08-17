@@ -6,7 +6,7 @@ from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property, \
     hash_string
 from .write_tb_summary import write_tb_summary
 
-from abc import ABC, abstractmethod
+from abc import ABCMeta, abstractmethod
 import math
 import numpy as np
 import os
@@ -15,7 +15,9 @@ import tensorflow as tf
 from tqdm import tqdm
 
 
-class Trainer(ABC):
+class Trainer(object):
+    __metaclass__ = ABCMeta
+
     def __init__(self, list_feeding_data, max_epochs=128,
                  nbr_readouts=256, seed=None, succ_validations=8,
                  train_portion=0.8, batch_size=64, verbosity=1,
@@ -392,14 +394,14 @@ class AdversariesTrainer(Trainer):
         super(AdversariesTrainer, self).__init__(*args, **kwargs)
 
     # #region needed tensors
-    def loss_t(self):
-        raise AttributeError("Don't use this function name for adversaries!")
-
     def lr_t(self):
         raise AttributeError("Don't use this function name for adversaries!")
 
     def optimize_t(self):
         raise AttributeError("Don't use this function name for adversaries!")
+
+    def loss_t(self):
+        return self.performer_loss_t
 
     @abstractmethod
     def performer_loss_t(self):

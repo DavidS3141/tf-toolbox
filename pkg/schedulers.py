@@ -61,7 +61,7 @@ def tf_warm_restart_cosine_annealing_scheduler(
 
 
 def warm_restart_exponential_scheduler(
-        lr_min=0.0,
+        lr_min=0.000001,
         lr_max=0.001,
         initial_warm_restart_iterations=1024,
         warm_restart_iterations_relative_increment=2.0):
@@ -82,7 +82,7 @@ def warm_restart_exponential_scheduler(
 
 def tf_warm_restart_exponential_scheduler(
         iter_t,
-        lr_min=0.0,
+        lr_min=0.000001,
         lr_max=0.001,
         initial_warm_restart_iterations=1024,
         warm_restart_iterations_relative_increment=2.0):
