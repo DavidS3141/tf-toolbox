@@ -3,7 +3,7 @@ from .convergence_checker import ConvergenceChecker
 from .create_summaries_on_graph import create_summaries_on_graph
 from .timer import Timer
 from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property, \
-    hash_string
+    hash_string, average_tf_output
 from .write_tb_summary import write_tb_summary
 
 from abc import ABCMeta, abstractmethod
@@ -57,6 +57,10 @@ class Trainer(object):
         raise NotImplementedError
 
     @abstractmethod
+    def create_plots(self, plot_dir, **kwargs):
+        print('\t\tNothing to do here! Overwrite "create_plots" for action!')
+
+    @abstractmethod
     def graph(self):
         raise NotImplementedError
 
@@ -89,8 +93,8 @@ class Trainer(object):
         self.iterations_per_validation = 1
         for tpl in self.list_feeding_data:
             if self.cfg.train_portion <= 1.0:
-                nbr_train_elements = round(
-                    self.cfg.train_portion * len(tpl[0]))
+                nbr_train_elements = int(round(
+                    self.cfg.train_portion * len(tpl[0])))
             else:
                 nbr_train_elements = self.cfg_train_portion
             assert isinstance(nbr_train_elements, int)
@@ -196,13 +200,8 @@ class Trainer(object):
         else:
             raise Exception('Logial error in this function!')
         if self.best_validation_score is None:
-            self.best_validation_score = self.sess.run(
-                self.loss_t,
-                feed_dict=self.get_feed_dict(self.list_valid_data))
-
-    @abstractmethod
-    def create_plots(self, plot_dir, **kwargs):
-        print('\t\tNothing to do here! Overwrite "create_plots" for action!')
+            self.best_validation_score = self.safe_sess_run(
+                self.loss_t, self.list_valid_data)
 
     def do_readout(self, readout_title, name=None, global_step=None,
                    bigger_used_summary=None, **kwargs):
@@ -244,6 +243,18 @@ class Trainer(object):
             self.timer.stop('TB')
         print('Finished readout!')
 
+    def safe_sess_run(self, tensors, batch):
+        if self.cfg.get('max_batch_size', None):
+            bg = batch_generator(self.cfg.max_batch_size, batch, shuffle=False,
+                                 single_epoch=True)
+            results = []
+            for b, epoch in bg:
+                results.append(
+                    self.sess.run(tensors, feed_dict=self.get_feed_dict(b)))
+            return average_tf_output(results)
+        else:
+            return self.sess.run(tensors, feed_dict=self.get_feed_dict(batch))
+
     def train(self, output_dir):
         self.output_dir = output_dir
         self.setup_infrastructure_training()
@@ -259,9 +270,9 @@ class Trainer(object):
     def train_loop(self):
         self.timer.start('readout')
         # #region initial readout
-        validation_value, bigger_used_summary = self.sess.run(
+        validation_value, bigger_used_summary = self.safe_sess_run(
             [self.loss_t, 'bigger_used_summaries_t:0'],
-            feed_dict=self.get_feed_dict(self.list_valid_data))
+            self.list_valid_data)
         self.do_readout(
             'initial', global_step=0,
             bigger_used_summary=bigger_used_summary,
@@ -324,9 +335,8 @@ class Trainer(object):
                 self.timer.start('validation')
                 # #region do validation
                 if global_step % self.iterations_per_validation == 0:
-                    fd = self.get_feed_dict(self.list_valid_data)
-                    validation_value, lr = self.sess.run(
-                        [self.loss_t, self.lr_t], feed_dict=fd)
+                    validation_value, lr = self.safe_sess_run(
+                        [self.loss_t, self.lr_t], self.list_valid_data)
                     validation_checker.check(validation_value, lr)
                 else:
                     validation_value = None
@@ -431,9 +441,9 @@ class AdversariesTrainer(Trainer):
     def train_loop(self):
         self.timer.start('readout')
         # #region initial readout
-        validation_value, bigger_used_summary = self.sess.run(
+        validation_value, bigger_used_summary = self.safe_sess_run(
             [self.performer_loss_t, 'bigger_used_summaries_t:0'],
-            feed_dict=self.get_feed_dict(self.list_valid))
+            self.list_valid_data)
         self.do_readout(
             'initial', global_step=0,
             bigger_used_summary=bigger_used_summary,
@@ -562,17 +572,16 @@ class AdversariesTrainer(Trainer):
                     self.timer.start('validation')
                     # #region do validation
                     if performer_step % self.iterations_per_validation == 0:
-                        fd = self.get_feed_dict(self.list_valid_data)
                         if self.cfg.just_train_adversary:
-                            validation_value, lr = self.sess.run(
+                            validation_value, lr = self.safe_sess_run(
                                 [self.adversary_loss_t,
                                  self.adversary_lr_t],
-                                feed_dict=fd)
+                                self.list_valid_data)
                         else:
-                            validation_value, lr = self.sess.run(
+                            validation_value, lr = self.safe_sess_run(
                                 [self.performer_loss_t,
                                  self.performer_lr_t],
-                                feed_dict=fd)
+                                self.list_valid_data)
                         validation_checker.check(validation_value, lr)
                     else:
                         validation_value = None
