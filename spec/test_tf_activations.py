@@ -1,4 +1,4 @@
-from pkg.nets.tf_activations import get_activation
+from tf_toolbox.nets.tf_activations import get_activation
 
 import pytest
 

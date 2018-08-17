@@ -1,9 +1,9 @@
-from pkg.nets.fc import fc_network
-from pkg.nets.normalization import normalization
-from pkg.regularizers import weight_decay_regularizer
-from pkg.schedulers import tf_warm_restart_exponential_scheduler
-from pkg.trainer import Trainer
-from pkg.util import lazy_property, define_scope, AttrDict, get_time_stamp
+from tf_toolbox.nets.fc import fc_network
+from tf_toolbox.nets.normalization import normalization
+from tf_toolbox.regularizers import weight_decay_regularizer
+from tf_toolbox.schedulers import tf_warm_restart_exponential_scheduler
+from tf_toolbox.trainer import Trainer
+from tf_toolbox.util import lazy_property, define_scope, AttrDict, get_time_stamp
 
 import numpy as np
 import os
