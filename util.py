@@ -1,8 +1,10 @@
 import functools
 import hashlib
+from numbers import Number
 import numpy as np
 import os
 import re
+import struct
 import tensorflow as tf
 import time
 import yaml
@@ -89,6 +91,73 @@ def denumpyfy(tuple_list_dict_number):
     if isinstance(tuple_list_dict_number, int):
         return int(tuple_list_dict_number)
     return tuple_list_dict_number
+
+
+def summary_string2dict(summ_str):
+    idx = 0
+    ret_dict = {}
+    while idx < len(summ_str):
+        assert summ_str[idx] == '\n'
+        content_size = struct.unpack('B', summ_str[idx + 1])[0] - 3
+        if summ_str[idx + 2] != '\n':
+            item_size = struct.unpack('B', summ_str[idx + 2])[0]
+            add_data = 128 * (item_size - 1)
+            head_len = 5
+        else:
+            item_size = 0
+            add_data = 0
+            head_len = 4
+        assert summ_str[idx + head_len - 2] == '\n'
+        name_len = struct.unpack('B', summ_str[idx + head_len - 1])[0]
+        name = summ_str[idx + head_len:idx + head_len + name_len]
+        print(name)
+        data_start = idx + head_len + name_len + 1
+        print('before data:' + repr(summ_str[data_start - 1]))
+        print('data:')
+        print(repr(summ_str[data_start:data_start + content_size - name_len + add_data]))
+        if len(summ_str) > data_start + content_size - name_len + add_data:
+            print('after data:' + repr(summ_str[data_start + content_size - name_len + add_data]))
+        if 42 == struct.unpack('B', summ_str[idx + head_len + name_len])[0]:
+            # split_a = data_start + content_size - name_len
+            # split_b = data_start + add_data
+            # print(repr(summ_str[data_start: split_a]))
+            # print(repr(summ_str[data_start: split_b]))
+            # print(repr(summ_str[split_a: data_start + content_size - name_len + add_data]))
+            # print(repr(summ_str[split_b: data_start + content_size - name_len + add_data]))
+            v1 = [struct.unpack('B', summ_str[data_start + i])[0] for i in range(content_size - name_len)]
+            v2 = [struct.unpack('<f', summ_str[data_start + content_size - name_len + 4 * i:data_start + content_size - name_len + 4 + 4 * i])[0] for i in range(add_data // 4)]
+            value = v1
+        else:
+            value = struct.unpack('<f', summ_str[data_start:data_start + 4])[0]
+        if not isinstance(value, list):
+            ret_dict[name] = value
+        idx += head_len + content_size + 1 + add_data
+    return ret_dict
+
+
+def average_tf_output(list_of_outputs):
+    assert isinstance(list_of_outputs, list)
+    if isinstance(list_of_outputs[0], list):
+        f = len(list_of_outputs[0])
+        result = []
+        for i in range(f):
+            result.append(average_tf_output([v[i] for v in list_of_outputs]))
+        return result
+    elif isinstance(list_of_outputs[0], Number):
+        return np.mean(np.array(list_of_outputs))
+    elif isinstance(list_of_outputs[0], str):
+        return average_tf_output(
+            [summary_string2dict(s) for s in list_of_outputs])
+    elif isinstance(list_of_outputs[0], dict):
+        keys = list(list_of_outputs[0])
+        result = {}
+        for k in keys:
+            result[k] = average_tf_output([v[k] for v in list_of_outputs])
+        return result
+    elif isinstance(list_of_outputs[0], np.ndarray):
+        return np.concatenate(list_of_outputs, axis=0)
+    print(type(list_of_outputs[0]))
+    assert False
 
 
 def hash_string(string):
