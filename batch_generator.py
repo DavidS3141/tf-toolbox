@@ -4,7 +4,8 @@ te = TypeError("list_datasets could not be successfully casted"
                " to valid type!")
 
 
-def batch_generator(batch_size, list_datasets):
+def batch_generator(batch_size, list_datasets, shuffle=True,
+                    single_epoch=False):
     '''
     Important: The list should consist of tuples, each containing numpy arrays
     with the same size. Inside each tuple the correlation stays preserved.
@@ -47,12 +48,25 @@ def batch_generator(batch_size, list_datasets):
             idx_max = i
             n = len(tpl[0])
     batch_size = min(n, batch_size)
+    if single_epoch:
+        return _single_epoch_batch_generator(
+            batch_size, list_datasets, shuffle, idx_max, n, nbr_datasets)
+    else:
+        return _infinite_epochs_batch_generator(
+            batch_size, list_datasets, shuffle, idx_max, n, nbr_datasets)
+
+
+def _infinite_epochs_batch_generator(
+        batch_size, list_datasets, shuffle, idx_max, n, nbr_datasets):
     data_loaded = [tuple([elem[0:0] for elem in tpl]) for tpl in list_datasets]
     nbr_epochs = -1
     while True:
         for i in range(nbr_datasets):
             while len(data_loaded[i][0]) < batch_size:
-                perm = np.random.permutation(len(list_datasets[i][0]))
+                if shuffle:
+                    perm = np.random.permutation(len(list_datasets[i][0]))
+                else:
+                    perm = range(len(list_datasets[i][0]))
                 data_loaded[i] = tuple(
                     [np.concatenate((data_loaded[i][k],
                                      list_datasets[i][k][perm]))
@@ -77,3 +91,25 @@ def batch_generator(batch_size, list_datasets):
         assert(epoch_float <= 1.)
 
         yield result, nbr_epochs + epoch_float
+
+
+def _single_epoch_batch_generator(
+        batch_size, list_datasets, shuffle, idx_max, n, nbr_datasets):
+    if shuffle:
+        shuffled_datasets = []
+        for i in range(nbr_datasets):
+            perm = np.random.permutation(len(list_datasets[i][0]))
+            shuffled_datasets.append(tuple(
+                [arr[perm, ...] for arr in list_datasets[i]]))
+        list_datasets = shuffled_datasets
+
+    nbr_iterations = n // batch_size + 1
+    for k in range(nbr_iterations):
+        result = []
+        for i in range(nbr_datasets):
+            cur_size = len(list_datasets[i][0])
+            l = (k * cur_size) // nbr_iterations
+            r = ((k + 1) * cur_size) // nbr_iterations
+            result.append(tuple(
+                [arr[l:r, ...] for arr in list_datasets[i]]))
+        yield result, float(k) / nbr_iterations
