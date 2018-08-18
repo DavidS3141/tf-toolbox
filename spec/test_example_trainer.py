@@ -4,7 +4,7 @@ from ..regularizers import weight_decay_regularizer
 from ..schedulers import tf_warm_restart_exponential_scheduler
 from ..trainer import Trainer
 from ..util import lazy_property, define_scope, AttrDict, \
-    get_time_stamp
+    get_time_stamp, makedirs
 
 import numpy as np
 import os
@@ -191,7 +191,7 @@ def test_hyper_search_example_trainer():
 
         trainer = ExampleTrainer(list_data, seed=42, nbr_readouts=0, **cfg)
         assert data_split_hash == trainer.data_split_hash
-        os.makedirs('data/hyper', exist_ok=True)
+        makedirs('data/hyper', exist_ok=True)
         path = cfg.get_hashed_path('data/hyper')
         try:
             trainer.restore_best_state(path)

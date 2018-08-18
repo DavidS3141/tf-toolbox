@@ -1,3 +1,5 @@
+from .util import makedirs
+
 import numpy as np
 import os
 from time import time
@@ -117,7 +119,7 @@ class Timer(object):
         total_time = sum(times)
         labels = ['%s %.1fs' % lab_time for lab_time in zip(labels, times)]
         times = [t / min(times) for t in times]  # make sure sum > 1
-        plt.pie(times, labels=labels, autopct='%.1f%%', rotatelabels=True,
+        plt.pie(times, labels=labels, autopct='%.1f%%',
                 shadow=True, startangle=90, counterclock=False)
         plt.axis('equal')
         plt.title('total time: %.1fs' % total_time)
@@ -149,5 +151,5 @@ class Timer(object):
         for k in timer_dict:
             if len(timer_dict[k][1]) == 0:
                 continue
-            os.makedirs(path, exist_ok=True)
+            makedirs(path, exist_ok=True)
             self.create_plot(path + '/' + k, timer_dict[k][1])

@@ -3,7 +3,7 @@ from .convergence_checker import ConvergenceChecker
 from .create_summaries_on_graph import create_summaries_on_graph
 from .timer import Timer
 from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property, \
-    hash_string, average_tf_output
+    hash_string, average_tf_output, makedirs
 from .write_tb_summary import write_tb_summary
 
 from abc import ABCMeta, abstractmethod
@@ -225,7 +225,7 @@ class Trainer(object):
         print('\nThis is the %s readout ...' % readout_title)
         print('\tCreate plots ...')
         plot_dir = os.path.join(self.plot_dir, name) + '/'
-        os.makedirs(plot_dir)
+        makedirs(plot_dir)
         self.create_plots(plot_dir)
         print('\tPlots saved to %s!' % plot_dir)
         self.timer.stop('plot')

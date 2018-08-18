@@ -283,3 +283,12 @@ def print_graph_statistics():
                     'regularization!'
     print(stats_string)
     return stats_string
+
+
+# python 2 compatability functions
+
+def makedirs(path, exist_ok=False):
+    if exist_ok:
+        if os.path.exists(path):
+            return
+    os.makedirs(path)
