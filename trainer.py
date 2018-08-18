@@ -460,6 +460,7 @@ class AdversariesTrainer(Trainer):
         turn = 'adversary'
         performer_step = 0
         nbr_readouts = 1  # counting the initial readout
+        do_validation_asap = False
         # #endregion loop variables
 
         # #region initialize convergence checkers
@@ -571,11 +572,13 @@ class AdversariesTrainer(Trainer):
                 # adversary is well-defined! This is only the case after
                 # the adversary converged, meaning the next turn is
                 # performed by the performer.
+                if global_step % self.iterations_per_validation == 0:
+                    do_validation_asap = True
                 if turn == 'performer' or self.cfg.just_train_adversary:
                     self.timer.start('validation')
                     # #region do validation
-                    if global_step % self.iterations_per_validation == 0:
-                        print('doing validation: %d' % global_step)
+                    if do_validation_asap:
+                        do_validation_asap = False
                         if self.cfg.just_train_adversary:
                             validation_value, lr = self.safe_sess_run(
                                 [self.adversary_loss_t,
