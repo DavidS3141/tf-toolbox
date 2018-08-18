@@ -94,35 +94,54 @@ def denumpyfy(tuple_list_dict_number):
 
 
 def summary_string2dict(summ_str):
+    if isinstance(summ_str, bytes):
+        newline_compare = b'\n'[0]
+
+        def unpack_flt(arg):
+            return struct.unpack('<f', arg)[0]
+
+        def unpack_int(arg):
+            return struct.unpack('B', bytes([arg]))[0]
+    else:
+        assert isinstance(summ_str, str)
+        newline_compare = '\n'
+
+        def unpack_flt(arg):
+            return struct.unpack('<f', arg)[0]
+
+        def unpack_int(arg):
+            return struct.unpack('B', arg)[0]
     idx = 0
     ret_dict = {}
     while idx < len(summ_str):
-        assert summ_str[idx] == '\n'
-        content_size = struct.unpack('B', summ_str[idx + 1])[0] - 3
-        if summ_str[idx + 2] != '\n':
-            item_size = struct.unpack('B', summ_str[idx + 2])[0]
+        assert summ_str[idx] == newline_compare
+        content_size = unpack_int(summ_str[idx + 1]) - 3
+        if summ_str[idx + 2] != newline_compare:
+            item_size = unpack_int(summ_str[idx + 2])
             add_data = 128 * (item_size - 1)
             head_len = 5
         else:
             item_size = 0
             add_data = 0
             head_len = 4
-        assert summ_str[idx + head_len - 2] == '\n'
-        name_len = struct.unpack('B', summ_str[idx + head_len - 1])[0]
+        assert summ_str[idx + head_len - 2] == newline_compare
+        name_len = unpack_int(summ_str[idx + head_len - 1])
         name = summ_str[idx + head_len:idx + head_len + name_len]
-        print(name)
+        if isinstance(name, bytes):
+            name = name.decode('utf8')
         data_start = idx + head_len + name_len + 1
-        print('before data:' + repr(summ_str[data_start - 1]))
-        print('data:')
-        print(repr(summ_str[
-            data_start:data_start + content_size - name_len + add_data]))
-        if len(summ_str) > data_start + content_size - name_len + add_data:
-            print('after data:' + repr(summ_str[
-                data_start + content_size - name_len + add_data]))
-        if 42 == struct.unpack('B', summ_str[idx + head_len + name_len])[0]:
+        # print(name)
+        # print('before data:' + repr(summ_str[data_start - 1]))
+        # print('data:')
+        # print(repr(summ_str[
+        #     data_start:data_start + content_size - name_len + add_data]))
+        # if len(summ_str) > data_start + content_size - name_len + add_data:
+        #     print('after data:' + repr(summ_str[
+        #         data_start + content_size - name_len + add_data]))
+        if 42 == unpack_int(summ_str[idx + head_len + name_len]):
             value = []
         else:
-            value = struct.unpack('<f', summ_str[data_start:data_start + 4])[0]
+            value = unpack_flt(summ_str[data_start:data_start + 4])
         if not isinstance(value, list):
             ret_dict[name] = value
         idx += head_len + content_size + 1 + add_data
@@ -139,7 +158,8 @@ def average_tf_output(list_of_outputs):
         return result
     elif isinstance(list_of_outputs[0], Number):
         return np.mean(np.array(list_of_outputs))
-    elif isinstance(list_of_outputs[0], str):
+    elif isinstance(list_of_outputs[0], str) or \
+            isinstance(list_of_outputs[0], bytes):
         return average_tf_output(
             [summary_string2dict(s) for s in list_of_outputs])
     elif isinstance(list_of_outputs[0], dict):

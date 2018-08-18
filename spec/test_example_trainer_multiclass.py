@@ -146,7 +146,8 @@ class ExampleMultiClassTrainer(Trainer):
         weights = self.list_feeding_data[0][1]
         labels = self.list_feeding_data[0][2]
         x = np.linspace(0, 1, num=1000)[..., np.newaxis]
-        pred = self.safe_sess_run(self.prediction_t, [(x, np.ones_like(x), np.ones_like(x))])
+        pred = self.safe_sess_run(
+            self.prediction_t, [(x, np.ones_like(x), np.ones_like(x))])
         a_idxs = labels == 0
         b_idxs = labels == 1
         c_idxs = labels == 2
