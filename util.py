@@ -94,16 +94,7 @@ def denumpyfy(tuple_list_dict_number):
 
 
 def summary_string2dict(summ_str):
-    if isinstance(summ_str, bytes):
-        newline_compare = b'\n'[0]
-
-        def unpack_flt(arg):
-            return struct.unpack('<f', arg)[0]
-
-        def unpack_int(arg):
-            return struct.unpack('B', bytes([arg]))[0]
-    else:
-        assert isinstance(summ_str, str)
+    if isinstance(summ_str, str):
         newline_compare = '\n'
 
         def unpack_flt(arg):
@@ -111,6 +102,15 @@ def summary_string2dict(summ_str):
 
         def unpack_int(arg):
             return struct.unpack('B', arg)[0]
+    else:
+        assert isinstance(summ_str, bytes)
+        newline_compare = b'\n'[0]
+
+        def unpack_flt(arg):
+            return struct.unpack('<f', arg)[0]
+
+        def unpack_int(arg):
+            return struct.unpack('B', bytes([arg]))[0]
     idx = 0
     ret_dict = {}
     while idx < len(summ_str):
