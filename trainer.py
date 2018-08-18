@@ -303,7 +303,7 @@ class Trainer(object):
 
         self.timer.start('loop')
         # #region main loop
-        with tqdm(total=math.ceil(self.cfg.max_epochs), unit='epoch',
+        with tqdm(total=int(math.ceil(self.cfg.max_epochs)), unit='epoch',
                   dynamic_ncols=True) as pbar:
             while epoch < self.cfg.max_epochs:
                 self.timer.start('progress bar')
@@ -475,18 +475,18 @@ class AdversariesTrainer(Trainer):
         # initialize validation checker
         validation_checker = ConvergenceChecker(
             min_iters=1,
-            max_iters=math.ceil(self.cfg.max_epochs + 1) *
+            max_iters=int(math.ceil(self.cfg.max_epochs + 1) *
             (round(self.iterations_per_epoch / self.iterations_per_validation)
-             + 1),
-            min_confirmations=round(
+             + 1)),
+            min_confirmations=int(math.ceil(
                 self.cfg.succ_validations *
-                self.iterations_per_epoch / self.iterations_per_validation)
+                self.iterations_per_epoch / self.iterations_per_validation))
         )
         # #endregion initialize convergence checkers
 
         self.timer.start('loop')
         # #region main loop
-        with tqdm(total=math.ceil(self.cfg.max_epochs), unit='epoch',
+        with tqdm(total=int(math.ceil(self.cfg.max_epochs)), unit='epoch',
                   dynamic_ncols=True) as pbar:
             while epoch < self.cfg.max_epochs:
                 self.timer.start('progress bar')
