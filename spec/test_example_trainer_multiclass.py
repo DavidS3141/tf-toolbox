@@ -43,7 +43,7 @@ class ExampleMultiClassTrainer(Trainer):
         self.average_weight = np.average(list_data[0][1])
         super(ExampleMultiClassTrainer, self).__init__(
             list_data, lr=lr, normalized_weight_decay=normalized_weight_decay,
-            *args, **kwargs)
+            max_batch_size=1024, *args, **kwargs)
 
     def get_feed_dict(self, batch):
         nbr_vals = np.sum([np.sum([np.prod(e.shape) for e in tpl])
@@ -146,7 +146,7 @@ class ExampleMultiClassTrainer(Trainer):
         weights = self.list_feeding_data[0][1]
         labels = self.list_feeding_data[0][2]
         x = np.linspace(0, 1, num=1000)[..., np.newaxis]
-        pred = self.sess.run(self.prediction_t, feed_dict={self.input_t: x})
+        pred = self.safe_sess_run(self.prediction_t, [(x, np.ones_like(x), np.ones_like(x))])
         a_idxs = labels == 0
         b_idxs = labels == 1
         c_idxs = labels == 2
@@ -232,24 +232,16 @@ def test_deterministic_multiclass_trainer():
         list_data, seed=42, max_epochs=32, nbr_readouts=0, debug_verbosity=0,
         verbosity=0, succ_validations=0.2)
     trainer.train('data/multiclass/example_trainer')
-    last_loss = trainer.sess.run(
-        trainer.loss_t,
-        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    last_loss = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer.restore_best_state()
-    best_loss = trainer.sess.run(
-        trainer.loss_t,
-        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    best_loss = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer = ExampleMultiClassTrainer(
         list_data, seed=42, max_epochs=32, nbr_readouts=0, debug_verbosity=0,
         verbosity=0, succ_validations=0.2)
     trainer.train('data/multiclass/example_trainer2')
-    last_loss2 = trainer.sess.run(
-        trainer.loss_t,
-        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    last_loss2 = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer.restore_best_state()
-    best_loss2 = trainer.sess.run(
-        trainer.loss_t,
-        feed_dict=trainer.get_feed_dict(trainer.list_valid_data))
+    best_loss2 = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     assert last_loss == last_loss2
     assert best_loss == best_loss2
     assert last_loss >= best_loss
