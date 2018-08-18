@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 class ConvergenceChecker(object):
     def __init__(self, min_iters=3, max_iters=int(1e13), min_confirmations=1):
+        assert min_confirmations > 0
         self.min_iters = min(max(min_iters, 1 + 2 * min_confirmations),
                              max_iters)
         self.max_iters = max_iters
