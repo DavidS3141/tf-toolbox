@@ -79,8 +79,8 @@ class ExampleMultiClassTrainer(Trainer):
     @define_scope
     def network(self):
         layer_sizes = [1, 128, 128, 128, 128, 3]
-        act_name = self.cfg.get('act_name', 'relu')
-        act_params = self.cfg.get('act_params', (None,))
+        act_name = self.cfg.get('act_name', 'leaky_relu')
+        act_params = self.cfg.get('act_params', (0.01,))
         network_func, layer_variables = fc_network(layer_sizes, 'network',
                                                    act_name=act_name,
                                                    act_params=act_params)
@@ -97,11 +97,11 @@ class ExampleMultiClassTrainer(Trainer):
     @define_scope
     def loss_t(self):
         xentropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
-            labels=tf.squeeze(self.labels_t),
+            labels=tf.squeeze(self.labels_t, [1]),
             logits=self.logits_t,
             name='xentropy')
         weighted_xentropy = tf.reduce_mean(
-            xentropy * self.weights_t / self.average_weight,
+            xentropy * tf.squeeze(self.weights_t, [1]) / self.average_weight,
             name='weighted_xentropy')
         return weighted_xentropy
 
@@ -231,14 +231,14 @@ def test_deterministic_multiclass_trainer():
     list_data = generate_toy_data(100000)
     trainer = ExampleMultiClassTrainer(
         list_data, seed=42, max_epochs=32, nbr_readouts=0, debug_verbosity=0,
-        verbosity=0, succ_validations=0.2)
+        verbosity=0, succ_validations=0.2, normalized_weight_decay=0.0)
     trainer.train('data/multiclass/example_trainer')
     last_loss = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer.restore_best_state()
     best_loss = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer = ExampleMultiClassTrainer(
         list_data, seed=42, max_epochs=32, nbr_readouts=0, debug_verbosity=0,
-        verbosity=0, succ_validations=0.2)
+        verbosity=0, succ_validations=0.2, normalized_weight_decay=0.0)
     trainer.train('data/multiclass/example_trainer2')
     last_loss2 = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer.restore_best_state()
