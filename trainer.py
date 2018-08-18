@@ -246,7 +246,8 @@ class Trainer(object):
         print('Finished readout!')
 
     def safe_sess_run(self, tensors, batch):
-        if self.cfg.get('max_batch_size', None):
+        if self.cfg.get('max_batch_size', None) and max([len(t[0]) for t in batch]) > self.cfg.max_batch_size:
+            assert self.cfg.batch_size <= self.cfg.max_batch_size
             bg = batch_generator(self.cfg.max_batch_size, batch, shuffle=False,
                                  single_epoch=True)
             results = []
