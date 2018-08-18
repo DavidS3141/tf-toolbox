@@ -21,7 +21,7 @@ class Trainer(object):
     def __init__(self, list_feeding_data, max_epochs=128,
                  nbr_readouts=256, seed=None, succ_validations=8,
                  train_portion=0.8, batch_size=64, verbosity=1,
-                 debug_verbosity=0, **kwargs):
+                 debug_verbosity=0, train_valid_time_ratio=4, **kwargs):
         tf.reset_default_graph()
         # #region config
         self.cfg = AttrDict({
@@ -32,6 +32,7 @@ class Trainer(object):
             'seed': seed,
             'succ_validations': succ_validations,
             'train_portion': train_portion,
+            'train_valid_time_ratio': train_valid_time_ratio,
             'verbosity': verbosity,
         })
         self.cfg.update(kwargs)
@@ -104,7 +105,8 @@ class Trainer(object):
                 round(float(nbr_train_elements) / self.cfg.batch_size))
             self.iterations_per_validation = max(
                 self.iterations_per_validation,
-                round(float(nbr_valid_elements) / self.cfg.batch_size))
+                round(self.cfg.train_valid_time_ratio *
+                      float(nbr_valid_elements) / self.cfg.batch_size))
             perm = np.random.permutation(len(tpl[0]))
             train_idxs = perm[:nbr_train_elements]
             valid_idxs = perm[nbr_train_elements:]
@@ -150,9 +152,9 @@ class Trainer(object):
                     raise EnvironmentError('Folder %s already exists!' % d)
 
     def setup_trainer_object(self):
-        self.setup_graph()
         self.setup_datasets()
         self.setup_train_queues()
+        self.setup_graph()
 
     def setup_infrastructure_training(self):
         self.setup_logging_paths()
@@ -571,7 +573,8 @@ class AdversariesTrainer(Trainer):
                 if turn == 'performer' or self.cfg.just_train_adversary:
                     self.timer.start('validation')
                     # #region do validation
-                    if performer_step % self.iterations_per_validation == 0:
+                    if global_step % self.iterations_per_validation == 0:
+                        print('doing validation: %d' % global_step)
                         if self.cfg.just_train_adversary:
                             validation_value, lr = self.safe_sess_run(
                                 [self.adversary_loss_t,
@@ -590,8 +593,12 @@ class AdversariesTrainer(Trainer):
                     self.timer.start('readout')
                     # #region readout
                     self.timer.start('name_if')
-                    name = '%06d__%08.4f' % (performer_step, 100.0 * epoch /
-                                             self.cfg.max_epochs)
+                    if self.cfg.just_train_adversary:
+                        name = '%06d__%08.4f' % (global_step, 100.0 * epoch /
+                                                 self.cfg.max_epochs)
+                    else:
+                        name = '%06d__%08.4f' % (performer_step, 100.0 * epoch /
+                                                 self.cfg.max_epochs)
                     if ((epoch * self.cfg.nbr_readouts >
                          float(nbr_readouts) * self.cfg.max_epochs) or
                             (epoch >= self.cfg.max_epochs) or
@@ -617,6 +624,8 @@ class AdversariesTrainer(Trainer):
                                     len(adversary_conv_checker),
                                 'epoch': epoch,
                                 'validation': validation_value,
+                                'nbr_confirmations': validation_checker.
+                                get_nbr_confirmations(),
                             }
                         )
                         self.timer.stop('TB')
