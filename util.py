@@ -292,3 +292,18 @@ def makedirs(path, exist_ok=False):
         if os.path.exists(path):
             return
     os.makedirs(path)
+
+
+# custom tensorflow operations
+def tf_sign_0(x, value_for_zero=0, name="sign_0"):
+    with tf.name_scope(name):
+        if value_for_zero == 0:
+            return tf.sign(x)
+        else:
+            return tf.sign(x) + value_for_zero * (1 - tf.abs(tf.sign(x)))
+
+
+def tf_safe_div(x, y, name="safe_div", epsilon=1e-7):
+    with tf.name_scope(name):
+        y = y + tf_sign_0(y, 1) * epsilon
+        return x / y
