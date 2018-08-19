@@ -161,7 +161,7 @@ class Trainer(object):
         self.setup_logging_ops()
         self.setup_session()
         self.timer = Timer()
-        self.best_validation_score = np.inf
+        self.best_validation_score = None
         self.clear_logging_paths()
     # #endregion setup
 
@@ -246,7 +246,8 @@ class Trainer(object):
         print('Finished readout!')
 
     def safe_sess_run(self, tensors, batch):
-        if self.cfg.get('max_batch_size', None) and max([len(t[0]) for t in batch]) > self.cfg.max_batch_size:
+        if self.cfg.get('max_batch_size', None) \
+                and max([len(t[0]) for t in batch]) > self.cfg.max_batch_size:
             assert self.cfg.batch_size <= self.cfg.max_batch_size
             bg = batch_generator(self.cfg.max_batch_size, batch, shuffle=False,
                                  single_epoch=True)
@@ -350,7 +351,7 @@ class Trainer(object):
                 self.timer.start('name_if')
                 name = '%06d__%08.4f' % (global_step, 100.0 * epoch /
                                          self.cfg.max_epochs)
-                if ((epoch * self.cfg.nbr_readouts >
+                if ((epoch * self.cfg.nbr_readouts >=
                      float(nbr_readouts) * self.cfg.max_epochs) or
                         (epoch >= self.cfg.max_epochs) or
                         validation_checker.is_converged()):
@@ -380,7 +381,8 @@ class Trainer(object):
                 self.timer.start('check')
                 # #region check validation for convergence and save best
                 self.best_validation_score = min(
-                    self.best_validation_score, validation_value or np.inf)
+                    self.best_validation_score, validation_value) or \
+                    self.best_validation_score or validation_value
                 if validation_value and \
                         validation_checker.is_best(validation_value):
                     save_path = os.path.join(self.best_dir, name)
@@ -413,6 +415,7 @@ class AdversariesTrainer(Trainer):
     def optimize_t(self):
         raise AttributeError("Don't use this function name for adversaries!")
 
+    @lazy_property
     def loss_t(self):
         return self.performer_loss_t
 
@@ -477,8 +480,8 @@ class AdversariesTrainer(Trainer):
         validation_checker = ConvergenceChecker(
             min_iters=1,
             max_iters=int(math.ceil(self.cfg.max_epochs + 1) *
-            (round(self.iterations_per_epoch / self.iterations_per_validation)
-             + 1)),
+                          (round(self.iterations_per_epoch /
+                                 self.iterations_per_validation) + 1)),
             min_confirmations=int(math.ceil(
                 self.cfg.succ_validations *
                 self.iterations_per_epoch / self.iterations_per_validation))
@@ -603,7 +606,7 @@ class AdversariesTrainer(Trainer):
                     else:
                         name = '%06d__%08.4f' % (performer_step, 100.0 * epoch /
                                                  self.cfg.max_epochs)
-                    if ((epoch * self.cfg.nbr_readouts >
+                    if ((epoch * self.cfg.nbr_readouts >=
                          float(nbr_readouts) * self.cfg.max_epochs) or
                             (epoch >= self.cfg.max_epochs) or
                             validation_checker.is_converged()):
