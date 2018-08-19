@@ -1,7 +1,6 @@
 from .util import makedirs
 
 import numpy as np
-import os
 from time import time
 
 import matplotlib

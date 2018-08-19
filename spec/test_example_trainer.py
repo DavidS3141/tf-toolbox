@@ -7,7 +7,6 @@ from ..util import lazy_property, define_scope, AttrDict, \
     get_time_stamp, makedirs
 
 import numpy as np
-import os
 import skopt
 from skopt.plots import plot_objective, plot_evaluations
 from skopt.space import Real
