@@ -12,10 +12,12 @@ import skopt
 from skopt.plots import plot_objective, plot_evaluations
 from skopt.space import Real
 from skopt.utils import use_named_args
-import tensorflow as tf
 
+import logging
 import matplotlib
+logging.getLogger('tensorflow').disabled = True
 matplotlib.use('Agg')
+import tensorflow as tf  # noqa: E402
 import matplotlib.pyplot as plt  # noqa: E402
 
 
