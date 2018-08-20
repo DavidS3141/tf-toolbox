@@ -178,6 +178,10 @@ def hash_string(string):
     return hashlib.md5(string.encode()).hexdigest()
 
 
+def hash_array(array):
+    return hashlib.md5(array.tostring()).hexdigest()
+
+
 class AttrDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__

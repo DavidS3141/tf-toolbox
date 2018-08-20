@@ -3,7 +3,7 @@ from .convergence_checker import ConvergenceChecker
 from .create_summaries_on_graph import create_summaries_on_graph
 from .timer import Timer
 from .util import AttrDict, ask_yn, print_graph_statistics, lazy_property, \
-    hash_string, average_tf_output, makedirs
+    hash_array, average_tf_output, makedirs
 from .write_tb_summary import write_tb_summary
 
 from abc import ABCMeta, abstractmethod
@@ -170,10 +170,10 @@ class Trainer(object):
         hash_value = ''
         for tpl in self.list_train_data:
             for elem in tpl:
-                hash_value += hash_string(str(elem.tostring()))
+                hash_value += hash_array(elem)
         for tpl in self.list_valid_data:
             for elem in tpl:
-                hash_value += hash_string(str(elem.tostring()))
+                hash_value += hash_array(elem)
         return hash_value
 
     def restore_best_state(self, output_dir=None):
