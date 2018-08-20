@@ -296,7 +296,7 @@ class Trainer(object):
             max_iters=int(math.ceil(self.cfg.max_epochs + 1) *
                           (round(self.iterations_per_epoch /
                                  self.iterations_per_validation) + 1)),
-            min_confirmations=int(round(
+            min_confirmations=int(math.ceil(
                 self.cfg.succ_validations *
                 self.iterations_per_epoch / self.iterations_per_validation))
         )
