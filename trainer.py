@@ -12,6 +12,7 @@ import numpy as np
 import os
 import shutil
 import tensorflow as tf
+from time import time
 from tqdm import tqdm
 
 
@@ -288,6 +289,9 @@ class Trainer(object):
         epoch = 0.
         global_step = 0
         nbr_readouts = 1  # counting the initial readout
+        last_pbar_update = 0
+        start_time = time()
+        stop_loop = False
         # #endregion loop variables
 
         # #region initialize validation checker
@@ -306,15 +310,17 @@ class Trainer(object):
         # #region main loop
         with tqdm(total=int(math.ceil(self.cfg.max_epochs)), unit='epoch',
                   dynamic_ncols=True) as pbar:
-            while epoch < self.cfg.max_epochs:
+            while not stop_loop:
                 self.timer.start('progress bar')
                 # #region update progress bar
-                pbar.set_description(
-                    'confirmations: %d/%d' %
-                    (validation_checker.get_nbr_confirmations(),
-                     validation_checker.min_confirmations))
-                if int(epoch) > pbar.n:
-                    pbar.update(int(epoch) - pbar.n)
+                if time() - last_pbar_update > 1:
+                    last_pbar_update = time()
+                    pbar.set_description(
+                        'confirmations: %d/%d' %
+                        (validation_checker.get_nbr_confirmations(),
+                         validation_checker.min_confirmations))
+                    if int(epoch) > pbar.n:
+                        pbar.update(int(epoch) - pbar.n)
                 # #endregion update progress bar
                 self.timer.stop('progress bar')
                 self.timer.start('training')
@@ -346,15 +352,21 @@ class Trainer(object):
                     validation_value = None
                 # #endregion do validation
                 self.timer.stop('validation')
+                # #region check stopping criteria
+                self.timer.start('check')
+                stop_loop = stop_loop \
+                    or validation_checker.is_converged() \
+                    or epoch >= self.cfg.max_epochs \
+                    or time() - start_time >= self.cfg.get('max_time', np.inf)
+                self.timer.stop('check')
+                # #endregion check stopping criteria
                 self.timer.start('readout')
                 # #region readout
                 self.timer.start('name_if')
                 name = '%06d__%08.4f' % (global_step, 100.0 * epoch /
                                          self.cfg.max_epochs)
-                if ((epoch * self.cfg.nbr_readouts >=
-                     float(nbr_readouts) * self.cfg.max_epochs) or
-                        (epoch >= self.cfg.max_epochs) or
-                        validation_checker.is_converged()):
+                if (epoch * self.cfg.nbr_readouts >=
+                        float(nbr_readouts) * self.cfg.max_epochs) or stop_loop:
                     nbr_readouts += 1
                     self.timer.stop('name_if')
                     self.do_readout(
@@ -378,8 +390,8 @@ class Trainer(object):
                     self.timer.stop('TB')
                 # #endregion readout
                 self.timer.stop('readout')
-                self.timer.start('check')
-                # #region check validation for convergence and save best
+                self.timer.start('best')
+                # #region save best
                 if self.best_validation_score is not None and \
                         validation_value is not None:
                     self.best_validation_score = \
@@ -392,11 +404,8 @@ class Trainer(object):
                     save_path = os.path.join(self.best_dir, name)
                     self.best_saver.save(self.sess, save_path,
                                          global_step=global_step)
-                if validation_checker.is_converged():
-                    self.timer.stop('check')
-                    break
-                # #endregion check validation for convergence and save best
-                self.timer.stop('check')
+                # #endregion save best
+                self.timer.stop('best')
         # #endregion main loop
         self.timer.stop('loop')
 
