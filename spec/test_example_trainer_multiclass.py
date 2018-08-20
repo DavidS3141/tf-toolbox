@@ -209,7 +209,7 @@ def test_hyper_search_multiclass_trainer():
         path = cfg.get_hashed_path('data/multiclass/hyper')
         try:
             trainer.restore_best_state(path)
-        except EnvironmentError as err:
+        except EnvironmentError:
             trainer.train(path)
         return trainer.best_validation_score
 

@@ -55,7 +55,7 @@ class Timer(object):
         else:
             try:
                 self.running_child_timer.stop(name)
-            except ValueError as err:
+            except ValueError:
                 print(self.running_timer)
                 raise
 
