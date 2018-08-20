@@ -4,10 +4,9 @@ from ..regularizers import weight_decay_regularizer
 from ..schedulers import tf_warm_restart_exponential_scheduler
 from ..trainer import Trainer
 from ..util import lazy_property, define_scope, AttrDict, \
-    get_time_stamp
+    get_time_stamp, makedirs
 
 import numpy as np
-import os
 import skopt
 from skopt.plots import plot_objective, plot_evaluations
 from skopt.space import Real
@@ -207,7 +206,7 @@ def test_hyper_search_multiclass_trainer():
         trainer = ExampleMultiClassTrainer(
             list_data, seed=42, nbr_readouts=0, **cfg)
         assert data_split_hash == trainer.data_split_hash
-        os.makedirs('data/multiclass/hyper', exist_ok=True)
+        makedirs('data/multiclass/hyper', exist_ok=True)
         path = cfg.get_hashed_path('data/multiclass/hyper')
         try:
             trainer.restore_best_state(path)
