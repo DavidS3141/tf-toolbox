@@ -43,7 +43,7 @@ class ExampleMultiClassTrainer(Trainer):
         self.average_weight = np.average(list_data[0][1])
         super(ExampleMultiClassTrainer, self).__init__(
             list_data, lr=lr, normalized_weight_decay=normalized_weight_decay,
-            max_batch_size=1024, *args, **kwargs)
+            *args, **kwargs)
 
     def get_feed_dict(self, batch):
         nbr_vals = np.sum([np.sum([np.prod(e.shape) for e in tpl])
@@ -231,14 +231,14 @@ def test_deterministic_multiclass_trainer():
     list_data = generate_toy_data(100000)
     trainer = ExampleMultiClassTrainer(
         list_data, seed=42, max_epochs=32, nbr_readouts=0, debug_verbosity=0,
-        verbosity=0, succ_validations=0.2, normalized_weight_decay=0.0)
+        verbosity=0, succ_validations=0.2, normalized_weight_decay=0.0, lr=0.1)
     trainer.train('data/multiclass/example_trainer')
     last_loss = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer.restore_best_state()
     best_loss = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer = ExampleMultiClassTrainer(
         list_data, seed=42, max_epochs=32, nbr_readouts=0, debug_verbosity=0,
-        verbosity=0, succ_validations=0.2, normalized_weight_decay=0.0)
+        verbosity=0, succ_validations=0.2, normalized_weight_decay=0.0, lr=0.1)
     trainer.train('data/multiclass/example_trainer2')
     last_loss2 = trainer.safe_sess_run(trainer.loss_t, trainer.list_valid_data)
     trainer.restore_best_state()
