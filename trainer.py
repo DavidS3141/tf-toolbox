@@ -380,9 +380,13 @@ class Trainer(object):
                 self.timer.stop('readout')
                 self.timer.start('check')
                 # #region check validation for convergence and save best
-                self.best_validation_score = min(
-                    self.best_validation_score, validation_value) or \
-                    self.best_validation_score or validation_value
+                if self.best_validation_score is not None and \
+                        validation_value is not None:
+                    self.best_validation_score = \
+                        min(self.best_validation_score, validation_value)
+                else:
+                    self.best_validation_score = \
+                        self.best_validation_score or validation_value
                 if validation_value and \
                         validation_checker.is_best(validation_value):
                     save_path = os.path.join(self.best_dir, name)
