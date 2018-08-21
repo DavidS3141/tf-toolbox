@@ -80,6 +80,16 @@ class Trainer(object):
         raise NotImplementedError
     # #endregion needed tensors
 
+    # #region context manager
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exception_type, exception_value, traceback):
+        if hasattr(self, 'sess'):
+            self.sess.close()
+        delattr(self, 'sess')
+    # #endregion context manager
+
     # #region setup
     def setup_graph(self):
         self.graph()
