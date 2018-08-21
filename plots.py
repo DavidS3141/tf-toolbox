@@ -5,10 +5,10 @@ matplotlib.use('Agg')
 import matplotlib.pyplot as plt  # noqa: E402
 
 
-def histnd(data, labels, bins=10, space=0.1, figsize=8, **kwargs):
+def histnd(data, labels, bins=10, space=0.1, figsize=8, percentile_cut=0, **kwargs):
     f = data.shape[1]
-    d_min = np.amin(data, axis=0)
-    d_max = np.amax(data, axis=0)
+    d_min = np.percentile(data, percentile_cut, axis=0)
+    d_max = np.percentile(data, 100 - percentile_cut, axis=0)
     ranges = [(d_min[i], d_max[i]) for i in range(f)]
 
     plt.close()
