@@ -88,6 +88,9 @@ class Trainer(object):
         if hasattr(self, 'sess'):
             self.sess.close()
         delattr(self, 'sess')
+        if hasattr(self, 'tb_saver'):
+            self.tb_saver.close()
+        delattr(self, 'tb_saver')
     # #endregion context manager
 
     # #region setup
