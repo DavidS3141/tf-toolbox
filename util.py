@@ -186,11 +186,19 @@ class AttrDict(dict):
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
+    def get_denumpyfied(self):
+        return denumpyfy(AttrDict(self))
+
+    def get_hash_value(self):
+        return hash_string(yaml.safe_dump(self.get_denumpyfied()))
+
     def get_hashed_path(self, base_path):
-        c = denumpyfy(dict(self))
-        hash_value = hash_string(yaml.dump(c))
-        with open(os.path.join(base_path, hash_value + '.cfg'), 'w') as f:
-            f.write(yaml.dump(c, default_flow_style=False))
+        hash_value = self.get_hash_value()
+        makedirs(base_path, exist_ok=True)
+        if not os.path.exists(os.path.join(base_path, hash_value + '.cfg')):
+            with open(os.path.join(base_path, hash_value + '.cfg'), 'w') as f:
+                f.write(yaml.safe_dump(self.get_denumpyfied(),
+                                       default_flow_style=False))
         return os.path.join(base_path, hash_value)
 
 
