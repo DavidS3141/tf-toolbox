@@ -278,12 +278,15 @@ class Trainer(object):
         self.setup_infrastructure_training()
         self.tb_saver = tf.summary.FileWriter(self.tb_dir)
         self.tb_saver.add_graph(self.sess.graph)
-        self.train_loop()
-        self.timer.start('readout')
-        self.restore_best_state()
-        self.do_readout('final')
-        self.timer.stop('readout')
-        self.timer.create_plot(self.plot_dir + '/timer')
+        try:
+            self.train_loop()
+        finally:
+            self.timer.stop_all()
+            self.timer.start('readout')
+            self.restore_best_state()
+            self.do_readout('final')
+            self.timer.stop('readout')
+            self.timer.create_plot(self.plot_dir + '/timer')
 
     def train_loop(self):
         self.timer.start('readout')
