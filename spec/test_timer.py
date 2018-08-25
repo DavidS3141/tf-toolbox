@@ -45,6 +45,6 @@ def test_timer():
     timer.start('a')
     timer.start('d')
     fsleep(3)
-    timer.stop('d')
-    timer.stop('a')
+    timer.stop_all()
+    assert len(timer.get_current_timer()) == 0
     timer.create_plot('data/test_timer')

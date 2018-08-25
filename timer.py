@@ -59,6 +59,11 @@ class Timer(object):
                 print(self.running_timer)
                 raise
 
+    def stop_all(self):
+        running_timer = self.get_current_timer()
+        for cur_timer in running_timer[::-1]:
+            self.stop(cur_timer)
+
     def get_current_timer(self):
         if self.running_timer is None:
             return []
