@@ -29,7 +29,7 @@ class ConvergenceChecker(object):
     def values_of_interest(self):
         return self.values[self.min_confirmations:]
 
-    def check(self, value, lr=1):
+    def check(self, value=0, lr=1):
         if self.is_best(value):
             self._logged_lr = lr
         elif lr > 2 * self._logged_lr:
@@ -47,10 +47,8 @@ class ConvergenceChecker(object):
 
     def get_best(self):
         n = len(self.values)
-        if n == 0:
+        if n <= self.min_confirmations:
             return - np.inf
-        if n < self.min_confirmations + 1:
-            return self.values[-1]
         return np.min(self.values_of_interest)
 
     def is_best(self, value):
@@ -69,6 +67,12 @@ class ConvergenceChecker(object):
             return 0
         return len(self.values_of_interest) - \
             np.argmin(self.values_of_interest) - 1
+
+    def next_value_ignored(self):
+        n = len(self.values)
+        if n < self.min_confirmations:
+            return True
+        return False
 
     def create_plot(self, plot_name):
         plt.close()
