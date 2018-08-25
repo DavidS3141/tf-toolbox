@@ -590,12 +590,15 @@ class AdversariesTrainer(Trainer):
                     adversary_conv_checker.reset()
                 elif turn == 'adversary' and \
                         not self.cfg.just_train_adversary:
-                    # do small validation to check if adversary is converged
-                    valid_batch, epoch_valid = next(self.valid_queue)
-                    fd = self.get_feed_dict(valid_batch)
-                    local_validation_value, local_lr = self.sess.run(
-                        [self.adversary_loss_t, self.adversary_lr_t],
-                        feed_dict=fd)
+                    if not adversary_conv_checker.next_value_ignored():
+                        # do small validation to check if adversary is converged
+                        valid_batch, epoch_valid = next(self.valid_queue)
+                        fd = self.get_feed_dict(valid_batch)
+                        local_validation_value, local_lr = self.sess.run(
+                            [self.adversary_loss_t, self.adversary_lr_t],
+                            feed_dict=fd)
+                    else:
+                        local_validation_value, local_lr = 0, 1
                     if adversary_conv_checker.check(local_validation_value,
                                                     local_lr):
                         turn = 'performer'
