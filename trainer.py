@@ -11,6 +11,8 @@ import math
 import numpy as np
 import os
 import shutil
+import six
+import sys
 import tensorflow as tf
 from time import time
 from tqdm import tqdm
@@ -280,7 +282,19 @@ class Trainer(object):
         self.tb_saver.add_graph(self.sess.graph)
         try:
             self.train_loop()
-        finally:
+        except Exception:
+            t, v, tb = sys.exc_info()
+            try:
+                self.timer.stop_all()
+                self.timer.start('readout')
+                self.restore_best_state()
+                self.do_readout('final')
+                self.timer.stop('readout')
+                self.timer.create_plot(self.plot_dir + '/timer')
+            except Exception:
+                pass
+            six.reraise(t, v, tb)
+        else:
             self.timer.stop_all()
             self.timer.start('readout')
             self.restore_best_state()
