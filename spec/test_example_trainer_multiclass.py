@@ -111,13 +111,13 @@ class ExampleMultiClassTrainer(Trainer):
         return tf.Variable(0, dtype=tf.int32, name='step_t')
 
     @lazy_property
-    def lr_total_its_t(self):
+    def eta_total_its_t(self):
         return tf_warm_restart_exponential_scheduler(
-            self.step_t, lr_min=0.0000001, lr_max=self.cfg.lr)
+            self.step_t, eta_min=0.0001)
 
     @lazy_property
     def lr_t(self):
-        return self.lr_total_its_t[0]
+        return self.eta_total_its_t[0] * self.cfg.lr
 
     @define_scope
     def optimize_t(self):
@@ -129,7 +129,8 @@ class ExampleMultiClassTrainer(Trainer):
                                      global_step=self.step_t)
         # return optimizer_opt
         return weight_decay_regularizer(
-            [optimizer_opt], self.lr_total_its_t[1], theta,
+            [optimizer_opt], self.eta_total_its_t[1],
+            scheduler=self.eta_total_its_t[0], var_list=theta,
             normalized_weight_decay=self.cfg.normalized_weight_decay)
 
     def graph(self):
