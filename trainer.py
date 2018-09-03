@@ -244,7 +244,12 @@ class Trainer(object):
         print('\tCreate plots ...')
         plot_dir = os.path.join(self.plot_dir, name) + '/'
         makedirs(plot_dir)
-        self.create_plots(plot_dir)
+        try:
+            self.create_plots(plot_dir)
+        except Exception:
+            import traceback
+            with open(plot_dir + 'error.txt', 'w') as f:
+                f.write(traceback.format_exc())
         print('\tPlots saved to %s!' % plot_dir)
         self.timer.stop('plot')
         if not is_final:
