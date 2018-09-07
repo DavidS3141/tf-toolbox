@@ -108,7 +108,7 @@ class ExampleTrainer(Trainer):
     @lazy_property
     def eta_total_its_t(self):
         return tf_warm_restart_exponential_scheduler(
-            self.step_t, lr_min=0.0001)
+            self.step_t, eta_min=0.0001)
 
     @lazy_property
     def lr_t(self):
