@@ -154,7 +154,12 @@ class Trainer(object):
 
     def setup_session(self):
         gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.4)
-        self.sess = tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+        config = tf.ConfigProto(
+            gpu_options=gpu_options,
+            intra_op_parallelism_threads=2,
+            inter_op_parallelism_threads=2,
+        )
+        self.sess = tf.Session(config=config)
         self.sess.run(tf.global_variables_initializer())
 
     def clear_logging_paths(self):
