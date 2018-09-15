@@ -75,7 +75,7 @@ class ExampleMultiClassTrainer(Trainer):
 
     @define_scope
     def normalization_t(self):
-        return normalization(self.input_t, self.list_feeding_data[0][0])
+        return normalization(self.input_t, self.list_feeding_data[0][0])[0]
 
     @define_scope
     def network(self):
