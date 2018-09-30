@@ -115,3 +115,21 @@ def tf_warm_restart_exponential_scheduler(
     decay_param = eta_min**(1. / wr_iters)
     eta = decay_param**iters_since_wr
     return eta, wr_iters
+
+
+def exponential_scheduler(decay_rate=0.0):
+    assert decay_rate < 1.0
+    assert decay_rate >= 0.0
+    iter = 0
+    while True:
+        iter += 1
+        eta = (1.0 - decay_rate)**iter
+        yield eta
+
+
+def tf_exponential_scheduler(iter_t, decay_rate=0.0):
+    assert decay_rate < 1.0
+    assert decay_rate >= 0.0
+    iter_t = tf.to_float(iter_t)
+    eta = (1.0 - decay_rate)**iter_t
+    return eta
