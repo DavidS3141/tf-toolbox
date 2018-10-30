@@ -405,8 +405,17 @@ class Trainer(object):
                 self.timer.start('name_if')
                 name = '%06d__%08.4f' % (global_step, 100.0 * epoch /
                                          self.cfg.max_epochs)
-                if (epoch * self.cfg.nbr_readouts >=
-                        float(nbr_readouts) * self.cfg.max_epochs) or stop_loop:
+                if (
+                    (
+                        epoch * self.cfg.nbr_readouts >=
+                        float(nbr_readouts) * self.cfg.max_epochs
+                    ) or
+                    (
+                        (time() - start_time) * self.cfg.nbr_readouts >=
+                        float(nbr_readouts) * self.cfg.get('max_time', np.inf)
+                    ) or
+                    stop_loop
+                ):
                     nbr_readouts += 1
                     self.timer.stop('name_if')
                     self.do_readout(
@@ -676,9 +685,18 @@ class AdversariesTrainer(Trainer):
                     else:
                         name = '%06d__%08.4f' % (performer_step, 100.0 * epoch /
                                                  self.cfg.max_epochs)
-                    if (epoch * self.cfg.nbr_readouts >=
-                            float(nbr_readouts) * self.cfg.max_epochs) or \
-                            stop_loop:
+                    if (
+                        (
+                            epoch * self.cfg.nbr_readouts >=
+                            float(nbr_readouts) * self.cfg.max_epochs
+                        ) or
+                        (
+                            (time() - start_time) * self.cfg.nbr_readouts >=
+                            float(nbr_readouts) * self.cfg.get(
+                                'max_time', np.inf)
+                        ) or
+                        stop_loop
+                    ):
                         nbr_readouts += 1
                         self.timer.stop('name_if')
                         self.do_readout(
