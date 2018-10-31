@@ -28,11 +28,30 @@ def munge_filename(name, mode='strict'):
     if mode == 'strict':
         non_alphabetic = re.compile('[^A-Za-z0-9_.]')
     else:
-        non_alphabetic = re.compile('[^A-Za-z0-9_\-.=,:]')
+        non_alphabetic = re.compile('[^A-Za-z0-9_\\-.=,:]')
     return non_alphabetic.sub('_', name)
 
 
 def ask_yn(question, default=-1, timeout=0):
+    """Ask interactively a yes/no-question and wait for an answer.
+
+    Parameters
+    ----------
+    question : string
+        Question asked to the user printed in the terminal.
+    default : int
+        Default answer can be one of (-1, 0, 1) corresponding to no default
+        (requires an user response), No, Yes.
+    timeout : float
+        Timeout after which the default answer is returned. This raises an
+        error if there is no default provided (default = -1).
+
+    Returns
+    -------
+    bool
+        Answer to the question trough user or default. (Yes=True, No=False)
+
+    """
     import sys
     import select
 
@@ -79,6 +98,21 @@ def ask_yn(question, default=-1, timeout=0):
 
 
 def denumpyfy(tuple_list_dict_number):
+    """A nested structure of tuples, lists, dicts and the lowest level numpy
+    values gets converted to an object with the same structure but all being
+    corresponding native python numbers.
+
+    Parameters
+    ----------
+    tuple_list_dict_number : tuple, list, dict, number
+        The object that should be converted.
+
+    Returns
+    -------
+    tuple, list, dict, native number (float, int)
+        The object with the same structure but only native python numbers.
+
+    """
     if isinstance(tuple_list_dict_number, tuple):
         return tuple([denumpyfy(elem) for elem in tuple_list_dict_number])
     if isinstance(tuple_list_dict_number, list):
@@ -94,6 +128,19 @@ def denumpyfy(tuple_list_dict_number):
 
 
 def summary_string2dict(summ_str):
+    """Converts a tf.Tensor of type string to a value dictionary.
+
+    Parameters
+    ----------
+    summ_str : tf.Tensor of type string
+        The serialized string tensor of the summary.
+
+    Returns
+    -------
+    dict
+        The extracted scalar values with their corresponding names as keys.
+
+    """
     if isinstance(summ_str, str):
         newline_compare = '\n'
 
@@ -149,6 +196,20 @@ def summary_string2dict(summ_str):
 
 
 def average_tf_output(list_of_outputs):
+    """Take list of multiple sess.run results and computes the average.
+
+    Parameters
+    ----------
+    list_of_outputs :
+        list of same type objects (tf.Tensor(type=string), number)
+        or list of list of same type ...
+
+    Returns
+    -------
+    number
+        Returns the average of all numbers.
+
+    """
     assert isinstance(list_of_outputs, list)
     if isinstance(list_of_outputs[0], list):
         f = len(list_of_outputs[0])
@@ -183,6 +244,8 @@ def hash_array(array):
 
 
 class AttrDict(dict):
+    """An AttrDict with strings as keys can also be accessed through
+    attrdict.key = value notation."""
     __getattr__ = dict.__getitem__
     __setattr__ = dict.__setitem__
 
@@ -193,6 +256,21 @@ class AttrDict(dict):
         return hash_string(yaml.safe_dump(self.get_denumpyfied()))
 
     def get_hashed_path(self, base_path):
+        """Create and return path based on the hash of this config.
+
+        Parameters
+        ----------
+        base_path : string
+            Base path under which this directory should be constructed.
+
+        Returns
+        -------
+        string
+            Create the directory and returns its path. Also creates a file with
+            the same name and '.cfg' as extension were all the parameters are
+            listed in yaml format.
+
+        """
         hash_value = self.get_hash_value()
         makedirs(base_path, exist_ok=True)
         if not os.path.exists(os.path.join(base_path, hash_value + '.cfg')):
@@ -203,8 +281,11 @@ class AttrDict(dict):
 
 
 class share_variables(object):  # noqa: N801
-    def __init__(self, callable_):
-        self._callable = callable_
+    """Uses tf.make_template to create a template function that constructs only
+    once and shares all the tf.Variables over all calls of this object.
+    """
+    def __init__(self, callable):
+        self._callable = callable
         self._wrappers = {}
         self._wrapper = None
 
@@ -243,6 +324,20 @@ class share_variables(object):  # noqa: N801
 
 
 def lazy_property(function):
+    """Decorator which adds lazy evaluation to the function and cashing the result.
+
+    Parameters
+    ----------
+    function : callable
+        The function that should be evaluated only once and providing the
+        result that gets cached.
+
+    Returns
+    -------
+    return type of callable
+        The cached result from the first and only evaluation.
+
+    """
     attribute = '_cache_' + function.__name__
 
     @property
@@ -279,6 +374,8 @@ def define_scope(function, scope=None, *args, **kwargs):
 
 
 def print_graph_statistics():
+    """Print some statistics of tf.default_graph to the terminal.
+    """
     stats_string = ''
     for key in [tf.GraphKeys.GLOBAL_VARIABLES,
                 tf.GraphKeys.TRAINABLE_VARIABLES,
@@ -297,16 +394,16 @@ def print_graph_statistics():
     return stats_string
 
 
-# python 2 compatability functions
-
+# #region python 2 compatability functions
 def makedirs(path, exist_ok=False):
     if exist_ok:
         if os.path.exists(path):
             return
     os.makedirs(path)
+# #endregion python 2 compatability functions
 
 
-# custom tensorflow operations
+# #region custom tensorflow operations
 def tf_sign_0(x, value_for_zero=0, name="sign_0"):
     with tf.name_scope(name):
         if value_for_zero == 0:
@@ -319,3 +416,4 @@ def tf_safe_div(x, y, name="safe_div", epsilon=1e-7):
     with tf.name_scope(name):
         y = y + tf_sign_0(y, 1) * epsilon
         return x / y
+# #endregion custom tensorflow operations
