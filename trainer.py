@@ -19,12 +19,44 @@ from tqdm import tqdm
 
 
 class Trainer(object):
+    """A simple Trainer class for training a single simple network. Highly
+    costumizable from outside (loss function, logging of values, etc.)
+
+    Parameters
+    ----------
+    list_feeding_data : list of tuple of numpy arrays
+        Datasets used for training. Datasets of a single tuple are row-wise
+        correlated and e.g. can be used for a input-label correlation.
+    max_epochs : int
+        Maximum number of epochs (iterations through whole training dataset).
+    nbr_readouts : int
+        Maximum number of readouts during training.
+    seed : int
+        Random seed used for numpy and tensorflow.
+    succ_validations : float
+        Number of epochs along which the loss needs to be bigger than the train
+        minimum to trigger early stopping.
+    train_portion : float
+        When <1 then the percentage of data taken for training, when >1 the
+        exact amount of datasamples taken for training (rest being validation).
+    batch_size : int
+        Used batch size during training.
+    verbosity : int
+        Lowest verbosity level is 0, highest is 2.
+    debug_verbosity : int
+        Verbosity of values used for debugging typically, lowest 0, highest 3.
+    train_valid_time_ratio : float
+        Approximate ratio of time spend on evaluating training data versus
+        validation data. The frequency of validation checks during training
+        gets adjusted accordingly.
+    """
     __metaclass__ = ABCMeta
 
-    def __init__(self, list_feeding_data, max_epochs=128,
-                 nbr_readouts=256, seed=None, succ_validations=8,
-                 train_portion=0.8, batch_size=64, verbosity=1,
-                 debug_verbosity=0, train_valid_time_ratio=4, **kwargs):
+    def __init__(
+        self, list_feeding_data, max_epochs=128, nbr_readouts=256, seed=None,
+        succ_validations=8, train_portion=0.8, batch_size=64, verbosity=1,
+        debug_verbosity=0, train_valid_time_ratio=4, **kwargs,
+    ):
         tf.reset_default_graph()
         # #region config
         self.cfg = AttrDict({
@@ -58,6 +90,18 @@ class Trainer(object):
 
     @abstractmethod
     def get_feed_dict(self, batch):
+        """Creates the feed dict based on the data in the batch. See spec/test_example_trainer.py.
+
+        Parameters
+        ----------
+        batch : list of tuples of arrays
+            A batch of data of the same format as the list_feeding_data.
+
+        Returns
+        -------
+        dict
+            The feed_dict argument that is used by sess.run.
+        """
         raise NotImplementedError
 
     @abstractmethod
@@ -66,6 +110,9 @@ class Trainer(object):
 
     @abstractmethod
     def graph(self):
+        """Should be used to construct the elements of the graph in a specific
+        order so that the tf graph in tensorboard looks nice and this class can
+        generated the summary ops."""
         raise NotImplementedError
 
     # #region needed tensors
@@ -104,11 +151,16 @@ class Trainer(object):
         print_graph_statistics()
 
     def setup_datasets(self):
+        """Create train and validation data based on the parameters and the
+        list_feeding_data."""
+        # initialize values to compute
         self.list_train_data = []
         self.list_valid_data = []
         self.iterations_per_epoch = 1
         self.iterations_per_validation = 1
+        # go through all the datasets
         for tpl in self.list_feeding_data:
+            # compute the number of train and validation elements
             if self.cfg.train_portion <= 1.0:
                 nbr_train_elements = int(round(
                     self.cfg.train_portion * len(tpl[0])))
@@ -116,21 +168,32 @@ class Trainer(object):
                 nbr_train_elements = self.cfg_train_portion
             assert isinstance(nbr_train_elements, int)
             nbr_valid_elements = len(tpl[0]) - nbr_train_elements
+            # compute iterations per epoch = train elements / batch size
             self.iterations_per_epoch = max(
                 self.iterations_per_epoch,
                 round(float(nbr_train_elements) / self.cfg.batch_size))
+            # compute iterations per validation computation:
+            #   For this the number of samples processed between each
+            #   validation should be train_valid_time_ratio-times larger than
+            #   the sample size of the validation set. This leads to the eq.
+            #   iterations_per_validation * batch_size
+            #       = train_valid_time_ratio * nbr_valid_elements
             self.iterations_per_validation = max(
                 self.iterations_per_validation,
                 round(self.cfg.train_valid_time_ratio *
                       float(nbr_valid_elements) / self.cfg.batch_size))
+            # Compute permutation order for this dataset and split into train
+            # and validation
             perm = np.random.permutation(len(tpl[0]))
             train_idxs = perm[:nbr_train_elements]
             valid_idxs = perm[nbr_train_elements:]
+            # reorder all the elements of the tuple accordingly
             local_train_list = []
             local_valid_list = []
             for elem in tpl:
                 local_train_list.append(elem[train_idxs, ...])
                 local_valid_list.append(elem[valid_idxs, ...])
+            # append datasets to the list of training and validation datasets
             self.list_train_data.append(tuple(local_train_list))
             self.list_valid_data.append(tuple(local_valid_list))
 
@@ -188,6 +251,14 @@ class Trainer(object):
 
     @lazy_property
     def data_split_hash(self):
+        """Computes a simple hash value characterizing the permutation and data
+        split and can be used for debugging.
+
+        Returns
+        -------
+        int
+            Hash of the performed permutation and data splitting.
+        """
         hash_value = ''
         for tpl in self.list_train_data:
             for elem in tpl:
@@ -198,7 +269,22 @@ class Trainer(object):
         return hash_value
 
     def restore_best_state(self, output_dir=None):
+        """Restore best state variables based on a directory with latest and
+        best variables saved like this class itself usually does. If there is
+        no best variables saved, use the latest variables saved as proxy. If
+        there are none of those, raises an error.
+
+        Parameters
+        ----------
+        output_dir : string
+            Absolute path to directory with best and variables sub directories.
+            If None, uses the directory names created during the run of the
+            training routine.
+        """
+        # set paths to latest (best) variables
         if output_dir:
+            # if a output_dir is specified, this object instance should not
+            # have been used for training to avoid losing results.
             assert not hasattr(self, 'output_dir')
             latest_best_checkpoint = tf.train.latest_checkpoint(
                 os.path.join(output_dir, 'best'))
@@ -210,18 +296,23 @@ class Trainer(object):
                 self.variables_dir)
         if not (latest_best_checkpoint or latest_vars_checkpoint):
             raise EnvironmentError("Why aren't there any saved variables?")
+        # if external data is used setup the Trainer class as if it was already
+        # trained
         if output_dir:
             self.output_dir = output_dir
             self.setup_logging_paths()
             self.setup_logging_ops()
             self.setup_session()
             self.best_validation_score = None
+        # load the latest best checkpoint or (if nonexistent) the latest
+        # checkpoint
         if latest_best_checkpoint:
             self.best_saver.restore(self.sess, latest_best_checkpoint)
         elif latest_vars_checkpoint:
             self.variables_saver.restore(self.sess, latest_vars_checkpoint)
         else:
             raise Exception('Logial error in this function!')
+        # set best validation score
         if self.best_validation_score is None:
             self.best_validation_score = self.safe_sess_run(
                 self.loss_t, self.list_valid_data)

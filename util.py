@@ -43,8 +43,8 @@ def ask_yn(question, default=-1, timeout=0):
         Default answer can be one of (-1, 0, 1) corresponding to no default
         (requires an user response), No, Yes.
     timeout : float
-        Timeout after which the default answer is returned. This raises an
-        error if there is no default provided (default = -1).
+        Timeout (in seconds) after which the default answer is returned. This
+        raises an error if there is no default provided (default = -1).
 
     Returns
     -------
