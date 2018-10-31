@@ -9,6 +9,21 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 
 def merge_total_time_dict(a, b):
+    """Merge two total-time dictionaries by adding the amount of collected time
+    in each hierarchical element.
+
+    Parameters
+    ----------
+    a, b : total-time dict
+        A total-time dict is a dictionary with the keys being the name of the
+        timer and the value being a pair of a total time number and a
+        dictionary further splitting up the time into lower hierarchical
+        components.
+
+    Returns
+    -------
+    total-time dict
+    """
     all_keys = set(a).union(set(b))
     total = dict()
     for key in all_keys:
@@ -19,6 +34,8 @@ def merge_total_time_dict(a, b):
 
 
 class Timer(object):
+    """A Timer class that can be used to time hierarchically different code
+    executions."""
     def __init__(self):
         self.reset()
 
@@ -60,26 +77,33 @@ class Timer(object):
                 raise
 
     def stop_all(self):
+        """Stop all timers recursively going upwards."""
         running_timer = self.get_current_timer()
         for cur_timer in running_timer[::-1]:
             self.stop(cur_timer)
 
     def get_current_timer(self):
+        """Returning list of current timers in hierarchical order
+        (top to bottom)."""
         if self.running_timer is None:
             return []
         return [self.running_timer[0]] + \
             self.running_child_timer.get_current_timer()
 
-    def get_max_depth(self, d=None):
+    def _get_max_depth(self, d=None):
         if d is None:
-            return self.get_max_depth(self.total_times)
+            return self._get_max_depth(self.total_times)
         max_sub_depth = 0
         for k in d:
-            max_sub_depth = max(max_sub_depth, 1 + self.get_max_depth(d[k][1]))
+            max_sub_depth = max(max_sub_depth, 1 + self._get_max_depth(d[k][1]))
         return max_sub_depth
 
-    def get_times_labels_colorids(self, depth, time_dict=None,
-                                  color_range=(0, 1)):
+    def _get_times_labels_colorids(
+        self,
+        depth,
+        time_dict=None,
+        color_range=(0, 1),
+    ):
         if time_dict is None:
             time_dict = self.total_times
         assert len(time_dict) > 0
@@ -98,7 +122,7 @@ class Timer(object):
         colorids = []
         for i, k in enumerate(sorted(list(time_dict))):
             if len(time_dict[k][1]) > 0:
-                t, labs, c = self.get_times_labels_colorids(
+                t, labs, c = self._get_times_labels_colorids(
                     depth - 1, time_dict=time_dict[k][1],
                     color_range=(split_range[i] + delta_for_cutoff/6,
                                  split_range[i+1] - delta_for_cutoff/6))
@@ -135,8 +159,8 @@ class Timer(object):
         plt.close()
         cmap = plt.get_cmap('gist_rainbow')
         total_time = sum([timer_dict[k][0] for k in timer_dict])
-        for d in range(self.get_max_depth(timer_dict)):
-            times, labels, colorids = self.get_times_labels_colorids(
+        for d in range(self._get_max_depth(timer_dict)):
+            times, labels, colorids = self._get_times_labels_colorids(
                 d, time_dict=timer_dict)
             colors = [cmap(cid) if cid != -1 else 'w' for cid in colorids]
             labels = ['%s %.1fs (%.1f%%)' %
