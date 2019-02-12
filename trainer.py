@@ -90,7 +90,8 @@ class Trainer(object):
 
     @abstractmethod
     def get_feed_dict(self, batch):
-        """Creates the feed dict based on the data in the batch. See spec/test_example_trainer.py.
+        """Creates the feed dict based on the data in the batch.
+        See spec/test_example_trainer.py.
 
         Parameters
         ----------
